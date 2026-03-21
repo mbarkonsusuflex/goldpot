@@ -10,6 +10,17 @@
   <meta name="description" content="Play for $1. Win the national pot. GoldPot — America's most exciting sweepstakes game.">
   <meta property="og:title" content="GOLDPOT — I'm playing for the national pot 🏆">
   <meta property="og:description" content="The pot is growing every second. Play for $1 or enter FREE. Will you be the next winner?">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://goldpot.onrender.com">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="GOLDPOT — Win The National Pot 🏆">
+  <meta name="twitter:description" content="The pot is growing every second. Play for $1 or enter FREE.">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>">
 </head>
 <body>
   <!-- ═══ SPLASH ═══ -->
@@ -41,6 +52,8 @@
         </button>
       </div>
     </header>
+
+    <div class="server-info" id="serverInfo">Connected to --</div>
 
     <!-- DAILY BONUS BAR -->
     <div class="daily-bar" id="dailyBar">
@@ -178,6 +191,16 @@
 
     <!-- ACTION BUTTONS -->
     <section class="action-section">
+      <div class="next-action-banner" id="nextActionBanner">
+        <div class="next-action-text" id="nextActionText">Step 1: Add a payment method to unlock instant play.</div>
+        <button class="btn-next-action" id="btnNextAction">ADD PAYMENT</button>
+      </div>
+      <div class="starter-offer hidden" id="starterOffer">
+        <div class="starter-offer-badge">NEW PLAYER BOOST</div>
+        <div class="starter-offer-title">3x ENTRIES FOR $2.49</div>
+        <div class="starter-offer-sub">One-time launch pack to kickstart your odds</div>
+        <button class="btn-starter-offer" id="btnStarterOffer">CLAIM STARTER OFFER</button>
+      </div>
       <button class="btn btn-premium" id="btnPremium">
         <span class="btn-price">$1</span>
         <span class="btn-label">PLAY & ENTER POT</span>
@@ -454,7 +477,7 @@
     </section>
 
     <!-- LEADERBOARD -->
-    <section class="leaderboard-section">
+    <section class="leaderboard-section" id="leaderboardSection">
       <h3 class="section-title">👑 LEADERBOARD</h3>
       <div id="leaderboardList" class="leaderboard-list">
         <div class="lb-empty">Play to get on the board!</div>
@@ -499,7 +522,7 @@
     <footer class="footer">
       <p>NO PURCHASE NECESSARY TO ENTER OR WIN. A PURCHASE WILL NOT INCREASE YOUR CHANCES OF WINNING.</p>
       <p>Free method of entry available. Must be 18+ and US resident. Void where prohibited.</p>
-      <p class="footer-links"><a href="#rules">Official Rules</a> · <a href="#privacy">Privacy</a> · <a href="#terms">Terms</a></p>
+      <p class="footer-links"><a href="/rules">Official Rules</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
       <p class="footer-copy">© 2026 GoldPot Inc.</p>
     </footer>
   </div>
@@ -559,8 +582,9 @@
         <p class="name-sub">Join in seconds. Start winning today.</p>
         <input type="text" id="playerNameInput" class="name-input" placeholder="Your name" maxlength="20" autocomplete="off">
         <input type="text" id="refCodeInput" class="name-input ref-input" placeholder="Referral code (optional)" maxlength="8" autocomplete="off">
-        <button class="btn btn-premium" id="btnJoin">NEXT →</button>
-        <p class="name-legal">Must be 18+. US residents only.</p>
+        <label class="age-confirm"><input type="checkbox" id="ageConfirm"> I confirm I am 18+ and a US resident</label>
+        <button class="btn btn-premium" id="btnJoin" disabled>NEXT →</button>
+        <p class="name-legal">Must be 18+. US residents only. By joining you agree to our <a href="/terms" style="color:var(--gold)">Terms</a> and <a href="/privacy" style="color:var(--gold)">Privacy Policy</a>.</p>
       </div>
 
       <!-- STEP 2: Payment -->

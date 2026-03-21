@@ -5,7 +5,60 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+// ─── Security Headers ──────────────────────────────────────────────────────
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
+
+// ─── HTTPS Redirect (production) ────────────────────────────────────────────
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, 'https://' + req.headers.host + req.url);
+    }
+    next();
+  });
+}
+
+// ─── Rate Limiter ───────────────────────────────────────────────────────────
+const rateLimits = new Map();
+function rateLimit(windowMs, maxReqs) {
+  return (req, res, next) => {
+    const ip = req.ip || req.connection.remoteAddress;
+    const key = ip + ':' + req.path;
+    const now = Date.now();
+    const entry = rateLimits.get(key);
+    if (!entry || now > entry.resetAt) {
+      rateLimits.set(key, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+    entry.count++;
+    if (entry.count > maxReqs) {
+      return res.status(429).json({ error: 'Too many requests. Please slow down.' });
+    }
+    next();
+  };
+}
+// Clean up stale entries every 5 min
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimits) {
+    if (now > entry.resetAt) rateLimits.delete(key);
+  }
+}, 300000);
+
+// ─── Input Sanitizer ────────────────────────────────────────────────────────
+function sanitizeString(str, maxLen = 30) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/[<>&"'/]/g, '').trim().slice(0, maxLen);
+}
+
+app.use(express.json({ limit: '10kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── In-Memory Store ────────────────────────────────────────────────────────
@@ -220,10 +273,12 @@ setInterval(() => {
       const winner = state.jackpot.entries[idx];
       const wp = state.players.get(winner.playerId);
       const name = wp ? wp.name : pickFakeName();
-      const prizeDisplay = (state.jackpot.prize / 100).toLocaleString('en-US');
+      // Timer expiry: pay out what's actually in the pot, not the fixed prize
+      const actualPrize = state.jackpot.pot;
+      const prizeDisplay = (actualPrize / 100).toLocaleString('en-US');
       state.jackpot.winner = { name, prize: prizeDisplay, timestamp: Date.now(), tier: state.jackpot.tier };
       state.jackpot.active = false;
-      if (wp) wp.totalWon += state.jackpot.prize;
+      if (wp) wp.totalWon += actualPrize;
       state.recentWinners.push({ name, prize: prizeDisplay, pot: state.jackpot.label, round: 0, timestamp: Date.now() });
       addFeedEvent('jackpot_winner', { name, prize: prizeDisplay, label: state.jackpot.label });
     } else {
@@ -265,11 +320,9 @@ setInterval(() => {
 state.flashPot = null;
 
 function createFlashPot() {
-  const prizes = [500, 1000, 2000]; // $5, $10, $20
-  const prize = prizes[Math.floor(Math.random() * prizes.length)];
   const duration = 5 * 60 * 1000; // 5 minutes
   state.flashPot = {
-    pot: prize, prize, entries: [], totalEntries: 0,
+    pot: 0, entries: [], totalEntries: 0,
     deadline: Date.now() + duration, label: '⚡ FLASH POT',
     color: '#ff8040', active: true,
   };
@@ -278,7 +331,7 @@ function createFlashPot() {
     state.flashPot.entries.push({ playerId: 'bot_' + i, timestamp: Date.now(), type: 'bot' });
     state.flashPot.totalEntries++;
   }
-  addFeedEvent('flash', { prize: (prize / 100).toFixed(2) });
+  addFeedEvent('flash', { prize: 'growing' });
 }
 
 // Create first flash pot after 2 minutes, then every 15-25 min
@@ -298,10 +351,10 @@ setInterval(() => {
       const winner = state.flashPot.entries[idx];
       const wp = state.players.get(winner.playerId);
       const name = wp ? wp.name : pickFakeName();
-      const prize = (state.flashPot.prize / 100).toFixed(2);
+      const prize = (state.flashPot.pot / 100).toFixed(2);
       state.flashPot.winner = { name, prize, timestamp: Date.now() };
       state.flashPot.active = false;
-      if (wp) wp.totalWon += state.flashPot.prize;
+      if (wp) wp.totalWon += state.flashPot.pot;
       state.recentWinners.push({ name, prize, pot: '⚡ FLASH', round: 0, timestamp: Date.now() });
       addFeedEvent('winner', { name, prize, pot: '⚡ FLASH POT' });
     } else {
@@ -462,11 +515,12 @@ app.get('/api/state', (req, res) => {
     const pctFull = Math.min(100, Math.round((p.pot / p.drawThreshold) * 100));
     pots[key] = { pot: p.pot, potDisplay: (p.pot / 100).toFixed(2), totalEntries: p.totalEntries, round: p.round, drawThreshold: p.drawThreshold, label: p.label, color: p.color, winner: p.winner, deadline: p.deadline, pctFull };
   }
-  res.json({ pots, onlineCount: state.onlineCount, recentWinners: state.recentWinners.slice(-10), liveFeed: state.liveFeed.slice(0, 15), leaderboard: state.leaderboard, bundles: state.bundles, serverTime: Date.now(), limitedDrop: (ensureLimitedDrop(), { entries: state.limitedDrop.entries, price: state.limitedDrop.price, remaining: state.limitedDrop.remaining, totalStock: state.limitedDrop.totalStock, label: state.limitedDrop.label, resetAt: state.limitedDrop.resetAt }), flashPot: state.flashPot ? { pot: state.flashPot.pot, prize: state.flashPot.prize, totalEntries: state.flashPot.totalEntries, deadline: state.flashPot.deadline, active: state.flashPot.active, label: state.flashPot.label, color: state.flashPot.color, winner: state.flashPot.winner || null } : null, jackpot: state.jackpot ? { tier: state.jackpot.tier, label: state.jackpot.label, prize: state.jackpot.prize, pot: state.jackpot.pot, totalEntries: state.jackpot.totalEntries, deadline: state.jackpot.deadline, threshold: state.jackpot.threshold, entryPrice: state.jackpot.entryPrice, color: state.jackpot.color, active: state.jackpot.active, winner: state.jackpot.winner || null, pctFull: Math.min(100, Math.round((state.jackpot.pot / state.jackpot.threshold) * 100)) } : null });
+  const serverUrl = `${req.protocol}://${req.get('host')}`;
+  res.json({ pots, onlineCount: state.onlineCount, recentWinners: state.recentWinners.slice(-10), liveFeed: state.liveFeed.slice(0, 15), leaderboard: state.leaderboard, bundles: state.bundles, serverTime: Date.now(), serverPort: activePort, serverUrl, limitedDrop: (ensureLimitedDrop(), { entries: state.limitedDrop.entries, price: state.limitedDrop.price, remaining: state.limitedDrop.remaining, totalStock: state.limitedDrop.totalStock, label: state.limitedDrop.label, resetAt: state.limitedDrop.resetAt }), flashPot: state.flashPot ? { pot: state.flashPot.pot, prize: state.flashPot.pot, totalEntries: state.flashPot.totalEntries, deadline: state.flashPot.deadline, active: state.flashPot.active, label: state.flashPot.label, color: state.flashPot.color, winner: state.flashPot.winner || null } : null, jackpot: state.jackpot ? { tier: state.jackpot.tier, label: state.jackpot.label, prize: state.jackpot.prize, pot: state.jackpot.pot, totalEntries: state.jackpot.totalEntries, deadline: state.jackpot.deadline, threshold: state.jackpot.threshold, entryPrice: state.jackpot.entryPrice, color: state.jackpot.color, active: state.jackpot.active, winner: state.jackpot.winner || null, pctFull: Math.min(100, Math.round((state.jackpot.pot / state.jackpot.threshold) * 100)) } : null });
 });
 
-app.post('/api/track-event', (req, res) => {
-  const event = String(req.body.event || '').trim();
+app.post('/api/track-event', rateLimit(10000, 20), (req, res) => {
+  const event = sanitizeString(String(req.body.event || ''), 50);
   if (!event) return res.status(400).json({ error: 'Missing event' });
   trackEvent(event, { playerId: req.body.playerId || null, data: req.body.data || {} });
   res.json({ ok: true });
@@ -477,10 +531,11 @@ app.get('/api/metrics', (req, res) => {
   res.json(getAnalyticsSummary(hours));
 });
 
-app.post('/api/register', (req, res) => {
+app.post('/api/register', rateLimit(60000, 5), (req, res) => {
   const id = generatePlayerId();
+  const rawName = sanitizeString(req.body.name, 20);
   const player = {
-    id, name: req.body.name || `Player_${id.slice(0, 6)}`,
+    id, name: rawName || `Player_${id.slice(0, 6)}`,
     entries: { mini: 0, gold: 0, mega: 0, jackpot: 0 }, totalEntries: 0, freeEntryUsed: {},
     referralCode: id.slice(0, 8).toUpperCase(), referredBy: req.body.referralCode || null, referralCount: 0,
     createdAt: Date.now(), lastPlayedAt: Date.now(), lastDailyBonus: null, lastSpin: null,
@@ -563,7 +618,7 @@ app.post('/api/starter-offer-claim', (req, res) => {
   res.json({ success: true, qty, cost, player: sanitizePlayer(player), winnerDrawn });
 });
 
-app.post('/api/free-entry', (req, res) => {
+app.post('/api/free-entry', rateLimit(60000, 10), (req, res) => {
   const { playerId, potId } = req.body;
   const pot = potId || 'gold';
   const player = state.players.get(playerId);
@@ -644,7 +699,7 @@ app.post('/api/premium-entry', (req, res) => {
   res.json({ success: true, bonusEntries, multiplier: mult, player: sanitizePlayer(player), potDisplay: (potData.pot / 100).toFixed(2), winnerDrawn });
 });
 
-app.post('/api/daily-bonus', (req, res) => {
+app.post('/api/daily-bonus', rateLimit(60000, 3), (req, res) => {
   const player = state.players.get(req.body.playerId);
   if (!player) return res.status(404).json({ error: 'Player not found' });
   const today = new Date().toDateString();
@@ -667,7 +722,7 @@ app.post('/api/daily-bonus', (req, res) => {
   res.json({ success: true, bonusEntries: bonus, streak: player.streak, player: sanitizePlayer(player) });
 });
 
-app.post('/api/spin-wheel', (req, res) => {
+app.post('/api/spin-wheel', rateLimit(60000, 3), (req, res) => {
   const player = state.players.get(req.body.playerId);
   if (!player) return res.status(404).json({ error: 'Player not found' });
   const today = new Date().toDateString();
@@ -701,7 +756,7 @@ app.post('/api/spin-wheel', (req, res) => {
 });
 
 // ─── Watch Ad for Entry ─────────────────────────────────────────────────
-app.post('/api/watch-ad', (req, res) => {
+app.post('/api/watch-ad', rateLimit(30000, 5), (req, res) => {
   const player = state.players.get(req.body.playerId);
   if (!player) return res.status(404).json({ error: 'Player not found' });
   const today = new Date().toDateString();
@@ -723,7 +778,7 @@ app.post('/api/watch-ad', (req, res) => {
   res.json({ success: true, adsLeft: adLimit - player.adsWatchedToday, adLimit, player: sanitizePlayer(player) });
 });
 
-app.post('/api/share-reward', (req, res) => {
+app.post('/api/share-reward', rateLimit(60000, 5), (req, res) => {
   const { playerId, platform } = req.body;
   const allowed = ['twitter', 'sms', 'link'];
   if (!allowed.includes(platform)) return res.status(400).json({ error: 'Invalid platform' });
@@ -861,8 +916,10 @@ app.post('/api/flash-entry', (req, res) => {
   const qty = Math.min(Math.max(1, parseInt(req.body.quantity) || 1), 10);
   const isFree = req.body.free === true;
   if (!isFree) {
-    // $0.50 per flash entry
+    // $0.50 per flash entry — 18% house cut, rest goes to pot
     const cost = qty * 50;
+    const houseTake = Math.floor(cost * state.houseCut);
+    state.flashPot.pot += cost - houseTake;
     player.totalSpent += cost;
     player.levelInfo = getPlayerLevel(player.totalSpent);
     player.level = player.levelInfo.level;
@@ -1066,7 +1123,7 @@ app.post('/api/mystery-box', (req, res) => {
   state.pots.gold.totalEntries += entries;
   player.levelInfo = getPlayerLevel(player.totalSpent);
   player.level = player.levelInfo.level;
-  const houseTake = Math.floor(tier.price * houseCut);
+  const houseTake = Math.floor(tier.price * state.houseCut);
   state.pots.gold.pot += (tier.price - houseTake);
   addFeedEvent('mystery_box', { name: player.name, rarity, entries, tier: tier.label });
   let winnerDrawn = null;
@@ -1097,7 +1154,7 @@ app.post('/api/lightning-buy', (req, res) => {
   const potId = req.body.potId || 'gold';
   const pot = state.pots[potId];
   if (!pot) return res.status(400).json({ error: 'Invalid pot' });
-  const houseTake = Math.floor(cost * houseCut);
+  const houseTake = Math.floor(cost * state.houseCut);
   player.totalSpent += cost;
   player.entries[potId] = (player.entries[potId] || 0) + qty;
   player.totalEntries += qty;
@@ -1154,7 +1211,7 @@ app.post('/api/all-in-pack', (req, res) => {
   if (!player.paymentMethod) return res.status(400).json({ error: 'Add payment method first' });
   const cost = 500;
   const entriesPerPot = 5;
-  const houseTake = Math.floor(cost * houseCut);
+  const houseTake = Math.floor(cost * state.houseCut);
   const netPerPot = Math.floor((cost - houseTake) / 3);
   player.totalSpent += cost;
   for (const potId of ['mini', 'gold', 'mega']) {
@@ -1189,7 +1246,7 @@ app.post('/api/limited-buy', (req, res) => {
   state.limitedDrop.remaining--;
   const cost = drop.price;
   const qty = drop.entries;
-  const houseTake = Math.floor(cost * houseCut);
+  const houseTake = Math.floor(cost * state.houseCut);
   player.totalSpent += cost;
   player.entries.gold = (player.entries.gold || 0) + qty;
   player.totalEntries += qty;
@@ -1222,9 +1279,76 @@ app.post('/api/mega-multiplier', (req, res) => {
   res.json({ success: true, multiplier: 5, expires: player.powerSurgeExpires, player: sanitizePlayer(player) });
 });
 
+// ─── Legal Pages ────────────────────────────────────────────────────────────
+const legalPage = (title, content) => `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} — GoldPot</title><link rel="stylesheet" href="/css/style.css"><style>body{padding:20px;max-width:700px;margin:0 auto}.legal-back{color:var(--gold);text-decoration:none;font-size:0.85rem}.legal-back:hover{text-decoration:underline}h1{font-family:var(--font-display);color:var(--gold);font-size:1.5rem;margin:20px 0 16px}h2{color:var(--white);font-size:1rem;margin:18px 0 8px}p,li{font-size:0.82rem;line-height:1.6;color:var(--text2);margin-bottom:8px}ul{padding-left:20px}</style></head><body><a href="/" class="legal-back">← Back to GoldPot</a>${content}<p style="margin-top:30px;font-size:0.7rem;color:var(--text3)">Last updated: March 2026 · © 2026 GoldPot Inc.</p></body></html>`;
+
+app.get('/rules', (req, res) => {
+  res.send(legalPage('Official Rules', `
+    <h1>OFFICIAL RULES</h1>
+    <h2>1. Eligibility</h2><p>Open to legal residents of the 50 United States and D.C., 18 years of age or older. Void where prohibited by law.</p>
+    <h2>2. No Purchase Necessary</h2><p>A purchase will NOT increase your chances of winning. Free method of entry available via the "FREE ENTRY" button.</p>
+    <h2>3. Entry Period</h2><p>Each pot round begins when the previous round ends and continues until the pot reaches its draw threshold or the countdown timer expires.</p>
+    <h2>4. How to Enter</h2>
+    <ul><li><b>Free Entry:</b> One free entry per pot per round via the Free Entry button.</li><li><b>Premium Entry:</b> Play the Deep Gold mini-game for $1 per entry (bundle discounts available).</li><li><b>Bonus Entries:</b> Earned via daily login, spin wheel, ad viewing, referrals, and session rewards.</li></ul>
+    <h2>5. Drawing & Winner Selection</h2><p>Winners are selected by computerized random drawing from all eligible entries. Each entry has an equal chance of being selected regardless of entry method.</p>
+    <h2>6. Prizes</h2><p>Prize amounts vary by pot type. The prize equals the total pot value after the 18% operational fee. Prizes over $600 are subject to IRS reporting (Form 1099).</p>
+    <h2>7. Winner Notification</h2><p>Winners will be notified via the platform and must provide valid identification and tax information to claim prizes.</p>
+    <h2>8. General Conditions</h2><p>Sponsor reserves the right to cancel, suspend, or modify the sweepstakes if fraud or technical issues compromise integrity.</p>
+    <h2>9. Sponsor</h2><p>GoldPot Inc. · Contact: support@goldpot.com</p>
+  `));
+});
+
+app.get('/privacy', (req, res) => {
+  res.send(legalPage('Privacy Policy', `
+    <h1>PRIVACY POLICY</h1>
+    <h2>Information We Collect</h2><p>We collect your display name, gameplay activity, and payment method selection. We do not store credit card numbers or bank information directly.</p>
+    <h2>How We Use Information</h2>
+    <ul><li>To operate the sweepstakes and determine winners</li><li>To personalize your experience (streaks, levels, achievements)</li><li>To communicate with winners about prize fulfillment</li><li>To prevent fraud and enforce our terms</li></ul>
+    <h2>Data Sharing</h2><p>We do not sell your personal information. We may share data with payment processors to complete transactions and with law enforcement if required by law.</p>
+    <h2>Data Retention</h2><p>Account data is retained while your account is active. You may request deletion by contacting support@goldpot.com.</p>
+    <h2>Children's Privacy</h2><p>GoldPot is not intended for anyone under 18. We do not knowingly collect information from minors.</p>
+    <h2>Contact</h2><p>Questions about this policy: support@goldpot.com</p>
+  `));
+});
+
+app.get('/terms', (req, res) => {
+  res.send(legalPage('Terms of Service', `
+    <h1>TERMS OF SERVICE</h1>
+    <h2>1. Acceptance</h2><p>By using GoldPot, you agree to these terms. If you do not agree, do not use the service.</p>
+    <h2>2. Eligibility</h2><p>You must be 18 years or older and a US resident to use GoldPot. By creating an account, you confirm you meet these requirements.</p>
+    <h2>3. Account</h2><p>You are responsible for maintaining your account security. Each person may only maintain one account.</p>
+    <h2>4. Payments & Refunds</h2><p>All purchases are final. Entry fees are non-refundable. The 18% operational fee funds platform maintenance, prize insurance, and operations.</p>
+    <h2>5. Fair Play</h2><p>Automated entries, multiple accounts, collusion, or any form of fraud will result in immediate account termination and forfeiture of entries and prizes.</p>
+    <h2>6. Prize Claims</h2><p>Winners must claim prizes within 30 days. Unclaimed prizes are forfeited. Winners are responsible for all applicable taxes.</p>
+    <h2>7. Limitation of Liability</h2><p>GoldPot is provided "as is." We are not liable for technical issues, service interruptions, or any indirect damages arising from use of the platform.</p>
+    <h2>8. Modifications</h2><p>We may update these terms at any time. Continued use after changes constitutes acceptance.</p>
+    <h2>9. Contact</h2><p>support@goldpot.com</p>
+  `));
+});
+
 // Serve Deep Gold game
 app.get('/goldmine', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'goldmine.html')); });
 
 app.get('*', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
 
-app.listen(PORT, '0.0.0.0', () => { console.log(`\n  🏆 GOLDPOT is live on port ${PORT}\n`); });
+let activePort = Number(PORT) || 3000;
+let server;
+
+function startServer(port) {
+  server = app.listen(port, '0.0.0.0', () => {
+    activePort = port;
+    console.log(`\n  🏆 GOLDPOT is live on port ${activePort}\n`);
+  });
+
+  server.on('error', (err) => {
+    if (err && err.code === 'EADDRINUSE') {
+      const nextPort = port + 1;
+      console.log(`\n  ⚠️ Port ${port} is busy, trying ${nextPort}...\n`);
+      setTimeout(() => startServer(nextPort), 200);
+      return;
+    }
+    throw err;
+  });
+}
+
+startServer(activePort);

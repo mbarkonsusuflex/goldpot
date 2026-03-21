@@ -16,6 +16,7 @@
   let selectedPayMethod = null;
   let pendingPurchaseQty = 0;
   let pendingDoubleDownQty = 0;
+  let pendingFirstPurchaseBoost = false;
   let countdownInterval = null;
   let flashCountdownInterval = null;
   let soundEnabled = true;
@@ -186,12 +187,43 @@
   // ─── API Helpers ────────────────────────────────────────────────────────
   async function api(path, body) {
     const opts = body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {};
-    const res = await fetch('/api/' + path, opts);
-    return res.json();
+    try {
+      const res = await fetch('/api/' + path, opts);
+      if (!res.ok) {
+        const text = await res.text().catch(() => 'Server error');
+        showError(text || `Error ${res.status}`);
+        return { error: true };
+      }
+      return await res.json();
+    } catch (e) {
+      showError('Connection lost — check your internet');
+      return { error: true };
+    }
+  }
+
+  function showError(msg) {
+    const el = document.createElement('div');
+    el.className = 'error-toast';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('show'));
+    setTimeout(() => {
+      el.classList.remove('show');
+      setTimeout(() => el.remove(), 400);
+    }, 3000);
+  }
+
+  function track(event, data = {}) {
+    fetch('/api/track-event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, playerId: player ? player.id : null, data }),
+    }).catch(() => {});
   }
 
   // ─── Init ───────────────────────────────────────────────────────────────
   async function init() {
+    track('app_init');
     // Fast splash — get users to action quickly
     setTimeout(() => {
       $('#splash').classList.add('fade-out');
@@ -201,6 +233,7 @@
         if (stored) {
           loadPlayer(stored);
         } else {
+          track('onboarding_shown');
           showNameModal();
         }
       }, 300);
@@ -266,6 +299,15 @@
   }
 
   function setupEvents() {
+    // ── Age Confirmation ──
+    const ageBox = $('#ageConfirm');
+    const joinBtn = $('#btnJoin');
+    if (ageBox) {
+      ageBox.addEventListener('change', () => {
+        joinBtn.disabled = !ageBox.checked;
+      });
+    }
+
     // ── Onboarding Step 1: Name → Step 2: Payment ──
     $('#btnJoin').addEventListener('click', async () => {
       const name = $('#playerNameInput').value.trim();
@@ -275,6 +317,7 @@
       const data = await api('register', { name, referralCode: ref || undefined });
       player = data.player;
       localStorage.setItem('goldpot_player_id', player.id);
+      track('onboarding_name_completed', { referred: !!ref });
       // Move to Step 2: payment
       $('#onboardStep1').classList.add('hidden');
       $('#onboardStep2').classList.remove('hidden');
@@ -296,10 +339,12 @@
       await savePaymentMethod('cardNumber', 'cardExpiry', 'cardCvc', 'cardZip');
       closeModal('nameModal');
       showApp();
+      track('onboarding_payment_completed', { method: selectedPayMethod });
       showBonus('🎉 You\'re all set! Start playing!');
     });
 
     $('#btnSkipPayment').addEventListener('click', () => {
+      track('onboarding_payment_skipped');
       closeModal('nameModal');
       showApp();
     });
@@ -333,6 +378,7 @@
     // ── Checkout sheet ──
     $('#checkoutClose').addEventListener('click', () => hideCheckout());
     $('#btnCheckoutConfirm').addEventListener('click', () => {
+      track('checkout_confirmed', { quantity: pendingPurchaseQty, pot: currentPot });
       hideCheckout();
       startGame(pendingPurchaseQty);
     });
@@ -349,6 +395,20 @@
 
     // Premium play — show checkout confirmation
     $('#btnPremium').addEventListener('click', () => showCheckout(1));
+
+    $('#btnNextAction').addEventListener('click', () => {
+      if (!player) return;
+      const step = !player.paymentMethod ? 'add_payment' : ((player.totalSpent || 0) === 0 ? 'first_play' : 'play_again');
+      track('guided_next_action_click', { step, totalSpent: player.totalSpent || 0 });
+      if (!player.paymentMethod) {
+        $('#paymentBtn').click();
+        return;
+      }
+      showCheckout(1);
+    });
+
+    // Starter offer (first purchase accelerator)
+    $('#btnStarterOffer').addEventListener('click', claimStarterOffer);
 
     // Bundles — show checkout confirmation
     $$('.btn-bundle, .btn-mega-bundle, .btn-whale-bundle').forEach(btn => {
@@ -527,12 +587,14 @@
     $('#btnDoubleDown').addEventListener('click', async () => {
       if (!player) return;
       closeModal('doubleDownModal');
-      const res = await api('double-down', { playerId: player.id, potId: currentPot, originalQty: pendingDoubleDownQty });
+      const res = await api('double-down', { playerId: player.id, potId: currentPot, originalQty: pendingDoubleDownQty, firstPurchaseBoost: pendingFirstPurchaseBoost });
       if (res.error) { showBonus(res.error); return; }
       player = res.player;
       renderPlayer();
       fetchState();
-      showBonus(`⚡ +${res.qty} DOUBLE DOWN ENTRIES!`);
+      showBonus(`⚡ +${res.qty} DOUBLE DOWN ENTRIES!${res.bonusQty > 0 ? ` (+${res.bonusQty} first-buyer boost)` : ''}`);
+      track('double_down_accepted', { qty: res.qty, bonusQty: res.bonusQty || 0, firstPurchaseBoost: pendingFirstPurchaseBoost });
+      pendingFirstPurchaseBoost = false;
       if (res.winnerDrawn && res.winnerDrawn.winner) {
         setTimeout(() => showWinner(res.winnerDrawn.winner), 1500);
         checkNearMiss(res.winnerDrawn);
@@ -649,6 +711,7 @@
     const res = await api('payment-method', { playerId: player.id, method: selectedPayMethod, cardLast4 });
     if (res.player) player = res.player;
     if (res.paymentMethod) player.paymentMethod = res.paymentMethod;
+    track('payment_saved_client', { method: selectedPayMethod });
     renderPayButton();
   }
 
@@ -668,26 +731,111 @@
       return;
     }
     pendingPurchaseQty = qty;
+    const isFirstPurchase = (player.totalSpent || 0) === 0;
     const bundle = gameState && gameState.bundles ? gameState.bundles[qty] : null;
     const price = bundle ? (bundle.price / 100).toFixed(2) : (qty * 1).toFixed(2);
     const pot = gameState ? gameState.pots[currentPot] : null;
     const potLabel = pot ? pot.label : currentPot.toUpperCase();
     const savings = bundle && bundle.savings ? bundle.savings : '';
 
-    $('#checkoutItem').textContent = `${qty}x Entries — ${potLabel}`;
+    $('#checkoutItem').textContent = isFirstPurchase ? `FIRST PLAY: ${qty}x Entries — ${potLabel}` : `${qty}x Entries — ${potLabel}`;
     $('#checkoutPrice').textContent = `$${price}`;
-    $('#checkoutSavings').textContent = savings ? `You save ${savings.replace(' OFF', '')}` : '';
-    $('#checkoutSavings').style.display = savings ? 'block' : 'none';
+    $('#checkoutSavings').textContent = savings ? `You save ${savings.replace(' OFF', '')}` : (isFirstPurchase ? 'Your first paid play unlocks bonus offers' : '');
+    $('#checkoutSavings').style.display = (savings || isFirstPurchase) ? 'block' : 'none';
 
     const pm = player.paymentMethod;
     $('#checkoutPayIcon').textContent = pm.icon || '💳';
     $('#checkoutPayLabel').textContent = `Pay $${price} with ${pm.label}`;
 
     $('#checkoutSheet').classList.remove('hidden');
+    track('checkout_opened', { quantity: qty, pot: currentPot, firstPurchase: isFirstPurchase });
   }
 
   function hideCheckout() {
     $('#checkoutSheet').classList.add('hidden');
+  }
+
+  function renderStarterOffer() {
+    const wrap = $('#starterOffer');
+    if (!wrap || !player) return;
+    const shouldShow = !!player.paymentMethod && (player.totalSpent || 0) === 0 && !player.starterOfferClaimed;
+    if (shouldShow) {
+      wrap.classList.remove('hidden');
+      track('starter_offer_seen', { pot: currentPot });
+    } else {
+      wrap.classList.add('hidden');
+    }
+  }
+
+  function renderGuidedFlow() {
+    if (!player) return;
+    const hasPayment = !!player.paymentMethod;
+    const spent = player.totalSpent || 0;
+    const firstPurchaseDone = spent >= 100;
+    const secondPurchaseDone = spent >= 200;
+    const advancedUnlock = spent >= 500;
+
+    const text = $('#nextActionText');
+    const btn = $('#btnNextAction');
+    if (text && btn) {
+      if (!hasPayment) {
+        text.textContent = 'Step 1: Add a payment method to unlock instant play.';
+        btn.textContent = 'ADD PAYMENT';
+      } else if (!firstPurchaseDone) {
+        text.textContent = 'Step 2: Make your first play. Missions and leaderboard unlock after your first paid game.';
+        btn.textContent = 'PLAY FIRST GAME';
+      } else if (!secondPurchaseDone) {
+        text.textContent = 'Step 3: One more paid play unlocks VIP and timed deal sections.';
+        btn.textContent = 'PLAY TO UNLOCK MORE';
+      } else if (!advancedUnlock) {
+        text.textContent = 'Step 4: Keep playing to unlock advanced boosts like Mystery Box and Power Surge.';
+        btn.textContent = 'KEEP BUILDING';
+      } else {
+        text.textContent = 'You are in momentum mode. Play again or use advanced boosts below.';
+        btn.textContent = 'PLAY AGAIN';
+      }
+    }
+
+    const visibility = {
+      missionsSection: firstPurchaseDone,
+      milestonesSection: firstPurchaseDone,
+      leaderboardSection: firstPurchaseDone,
+      achievementsSection: secondPurchaseDone,
+      vipSection: secondPurchaseDone,
+      lightningSection: secondPurchaseDone,
+      limitedSection: secondPurchaseDone,
+      mysterySection: advancedUnlock,
+      surgeSection: advancedUnlock,
+      allinSection: advancedUnlock,
+    };
+    for (const [id, show] of Object.entries(visibility)) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      el.classList.toggle('hidden', !show);
+    }
+
+    const saver = document.getElementById('streakSaver');
+    if (saver && !secondPurchaseDone) saver.classList.add('hidden');
+  }
+
+  async function claimStarterOffer() {
+    if (!player) return;
+    if (!player.paymentMethod) {
+      $('#paymentBtn').click();
+      showBonus('Add payment first to claim the starter offer');
+      return;
+    }
+    const res = await api('starter-offer-claim', { playerId: player.id, potId: currentPot });
+    if (res.error) { showBonus(res.error); return; }
+    player = res.player;
+    renderPlayer();
+    fetchState();
+    renderStarterOffer();
+    showBonus(`🚀 Starter unlocked: ${res.qty} entries for $${(res.cost / 100).toFixed(2)}!`);
+    track('starter_offer_claimed', { pot: currentPot, qty: res.qty, cost: res.cost });
+    if (res.winnerDrawn && res.winnerDrawn.winner) {
+      setTimeout(() => showWinner(res.winnerDrawn.winner), 1600);
+    }
   }
 
   function formatCardNumber(input) {
@@ -806,6 +954,7 @@
   // ─── Game Flow ──────────────────────────────────────────────────────────
   function startGame(quantity) {
     if (!player || isPlaying) return;
+    const isFirstPurchase = (player.totalSpent || 0) === 0;
     isPlaying = true;
     lastGameScore = 0;
     $('#gameOverlay').classList.add('active');
@@ -813,6 +962,7 @@
     $('#mineGold').textContent = '0';
     $('#mineBanked').textContent = '0';
     game.start();
+    track('game_started', { quantity, pot: currentPot, firstPurchase: isFirstPurchase });
 
     game.onEnd = async (score) => {
       lastGameScore = score;
@@ -831,6 +981,7 @@
         const res = await api('premium-entry', { playerId: player.id, quantity, potId: currentPot, gameScore: score });
         if (res.error) { showBonus(res.error); return; }
         player = res.player;
+        track('premium_entry_success', { quantity, score, pot: currentPot, firstPurchase: isFirstPurchase });
         if (res.bonusEntries > 0) showBonus(`🎯 +${res.bonusEntries} BONUS ENTRIES!`);
         if (res.multiplier > 1) setTimeout(() => showBonus(`⚡ ${res.multiplier}x MULTIPLIER APPLIED!`), 1500);
         if (res.winnerDrawn && res.winnerDrawn.winner) {
@@ -841,6 +992,7 @@
         $('#btnPlayAgain').classList.remove('hidden');
         // Trigger Double Down upsell (after 2 seconds)
         pendingDoubleDownQty = quantity;
+        pendingFirstPurchaseBoost = isFirstPurchase;
         setTimeout(() => showDoubleDown(quantity), 2500);
         // Update hot streak indicator
         renderHotStreak();
@@ -862,6 +1014,7 @@
       const data = await api('player/' + id);
       if (data.error) { localStorage.removeItem('goldpot_player_id'); showNameModal(); return; }
       player = data;
+      track('player_loaded', { hasPayment: !!player.paymentMethod, totalSpent: player.totalSpent || 0 });
       showApp();
     } catch {
       showNameModal();
@@ -871,7 +1024,10 @@
   // ─── Show App ───────────────────────────────────────────────────────────
   function showApp() {
     $('#app').classList.remove('hidden');
+    track('app_ready', { hasPayment: !!(player && player.paymentMethod), totalSpent: player ? player.totalSpent : 0 });
     renderPlayer();
+    renderStarterOffer();
+    renderGuidedFlow();
     renderPayButton();
     fetchState();
     pollTimer = setInterval(fetchState, 5000);
@@ -889,7 +1045,17 @@
     renderVipStatus();
     startCountdownTick();
     renderFomoOffers();
+    renderServerInfo();
+    renderGuidedFlow();
     $('#onlineCount').textContent = formatNum(gameState.onlineCount);
+  }
+
+  function renderServerInfo() {
+    const el = document.getElementById('serverInfo');
+    if (!el || !gameState) return;
+    const url = gameState.serverUrl || window.location.origin;
+    const port = gameState.serverPort || window.location.port || 'default';
+    el.textContent = `Connected to ${url} (port ${port})`;
   }
 
   // ─── Double Down Upsell ──────────────────────────────────────────────
@@ -898,8 +1064,12 @@
     const bundle = gameState.bundles[qty];
     const originalPrice = bundle ? bundle.price : qty * 100;
     const halfPrice = Math.ceil(originalPrice * 0.5);
+    const firstBoost = pendingFirstPurchaseBoost;
     $('#ddQty').textContent = qty;
     $('#ddPrice').textContent = '$' + (halfPrice / 100).toFixed(2);
+    $('.dd-title').textContent = firstBoost ? 'FIRST BUYER BOOST!' : 'DOUBLE DOWN!';
+    $('.dd-sub').textContent = firstBoost ? 'One-time launch boost: extra entries included.' : 'Same pot. Double the odds. One tap.';
+    track('double_down_shown', { qty, firstPurchaseBoost: firstBoost, pot: currentPot });
     openModal('doubleDownModal');
     SFX.bonus();
   }
@@ -1236,7 +1406,8 @@
   function renderLightningDeal() {
     if (!player || !player.lightningDeal) return;
     const deal = player.lightningDeal;
-    const section = $('#lightningSection');
+    const spent = player.totalSpent || 0;
+    const secondPurchaseDone = spent >= 200;
     const diff = Math.max(0, deal.deadline - Date.now());
 
     if (diff <= 0) {
@@ -1247,29 +1418,24 @@
       return;
     }
 
+    const section = document.getElementById('lightningSection');
+    if (!section) return;
+    if (!secondPurchaseDone) { section.classList.add('hidden'); return; }
     section.classList.remove('hidden');
     $('#lightningDiscount').textContent = `${deal.discount}% OFF`;
     $('#lightningDetail').textContent = deal.label;
     $('#lightningOriginal').textContent = `$${(deal.normalPrice / 100).toFixed(2)}`;
     $('#lightningSale').textContent = `$${(deal.salePrice / 100).toFixed(2)}`;
 
-    // Timer
+    // Countdown
     if (lightningInterval) clearInterval(lightningInterval);
     lightningInterval = setInterval(() => {
-      const d = Math.max(0, deal.deadline - Date.now());
-      const m = Math.floor(d / 60000);
-      const s = Math.floor((d % 60000) / 1000);
-      $('#lightningTime').textContent = `${m}:${String(s).padStart(2, '0')}`;
-      const pct = (d / 90000) * 100;
-      $('#lightningTimerFill').style.width = pct + '%';
-      if (d <= 0) {
-        clearInterval(lightningInterval);
-        lightningInterval = null;
-        // Auto-refresh deal
-        api('lightning-deal', { playerId: player.id }).then(res => {
-          if (res.deal) { player.lightningDeal = res.deal; renderLightningDeal(); }
-        });
-      }
+      const remaining = Math.max(0, deal.deadline - Date.now());
+      if (remaining <= 0) { clearInterval(lightningInterval); renderLightningDeal(); return; }
+      const m = Math.floor(remaining / 60000);
+      const s = Math.floor((remaining % 60000) / 1000);
+      const timeEl = $('#lightningTimer');
+      if (timeEl) timeEl.textContent = `${m}:${String(s).padStart(2, '0')}`;
     }, 1000);
   }
 
@@ -1493,6 +1659,8 @@
     renderLevelProgress();
     renderMissions();
     renderMilestones();
+    renderStarterOffer();
+    renderGuidedFlow();
   }
 
   // ─── Achievements ──────────────────────────────────────────────────────
@@ -1555,6 +1723,7 @@
       `;
       list.appendChild(card);
     });
+
     // Bind claim buttons
     $$('.btn-claim-mission').forEach(btn => {
       btn.addEventListener('click', async (e) => {
@@ -1571,7 +1740,7 @@
     });
   }
 
-  // ─── Milestones ─────────────────────────────────────────────────────────
+  // ─── Milestones ────────────────────────────────────────────────────────
   function renderMilestones() {
     if (!player || !player.availableMilestones) return;
     const list = $('#milestonesList');
@@ -1589,6 +1758,7 @@
       `;
       list.appendChild(card);
     }
+
     // Bind claim buttons
     $$('.btn-claim-milestone').forEach(btn => {
       btn.addEventListener('click', async (e) => {

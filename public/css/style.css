@@ -36,6 +36,19 @@ body {
 }
 .hidden { display: none !important; }
 
+/* ─── ERROR TOAST ──────────────────────────────────────────────────────── */
+.error-toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--red); color: #fff; padding: 12px 24px; border-radius: var(--radius-sm);
+  font-size: 0.85rem; font-weight: 600; z-index: 100000; opacity: 0;
+  transition: opacity 0.3s, transform 0.3s; pointer-events: none;
+  max-width: 90vw; text-align: center;
+}
+.error-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Disabled button state */
+.btn[disabled] { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
 /* ─── SPLASH ─────────────────────────────────────────────────────────────── */
 .splash {
   position: fixed; inset: 0; z-index: 1000; background: var(--bg);
@@ -87,6 +100,16 @@ body {
   color: var(--text2); border-radius: 10px; padding: 7px; cursor: pointer; transition: all 0.2s;
 }
 .btn-icon:hover { background: var(--surface2); color: var(--gold); }
+
+.server-info {
+  text-align: center;
+  font-size: 0.68rem;
+  color: var(--text2);
+  padding: 6px 10px;
+  background: rgba(96, 192, 255, 0.06);
+  border-bottom: 1px solid rgba(96, 192, 255, 0.16);
+  letter-spacing: 0.3px;
+}
 
 /* ─── DAILY BONUS BAR ────────────────────────────────────────────────────── */
 .daily-bar {
@@ -201,6 +224,77 @@ body {
 
 /* ─── BUTTONS ────────────────────────────────────────────────────────────── */
 .action-section { padding: 20px 16px; max-width: 440px; margin: 0 auto; }
+.next-action-banner {
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, rgba(96, 192, 255, 0.14), rgba(240, 192, 64, 0.12));
+  border: 1px solid rgba(96, 192, 255, 0.3);
+  border-radius: var(--radius);
+  padding: 12px;
+  text-align: center;
+}
+.next-action-text {
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.btn-next-action {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  color: #031019;
+  background: linear-gradient(135deg, #60c0ff, #f0c040);
+}
+.btn-next-action:active { transform: scale(0.98); }
+.starter-offer {
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, rgba(64, 224, 112, 0.18), rgba(96, 192, 255, 0.16));
+  border: 1px solid rgba(96, 192, 255, 0.35);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  text-align: center;
+}
+.starter-offer-badge {
+  display: inline-block;
+  background: rgba(64, 224, 112, 0.22);
+  border: 1px solid rgba(64, 224, 112, 0.45);
+  color: #7ef0a8;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+.starter-offer-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: #d7f7ff;
+  margin-top: 6px;
+}
+.starter-offer-sub {
+  font-size: 0.76rem;
+  color: var(--text2);
+  margin-top: 4px;
+  margin-bottom: 10px;
+}
+.btn-starter-offer {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px;
+  background: linear-gradient(135deg, #40e070, #60c0ff);
+  color: #041019;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+.btn-starter-offer:active { transform: scale(0.98); }
 .btn {
   display: flex; flex-direction: column; align-items: center;
   width: 100%; padding: 14px; border: none; border-radius: var(--radius);
@@ -466,6 +560,67 @@ body {
   .game-container { max-width: 440px; }
 }
 @media (hover: none) { .btn:active { transform: scale(0.95); } }
+
+/* Mobile: small screens */
+@media (max-width: 374px) {
+  .top-bar { padding: 8px 10px; }
+  .top-right { gap: 4px; }
+  .top-right .level-badge { display: none; }
+  .live-badge { font-size: 0.65rem; padding: 4px 6px; }
+  .streak-badge { font-size: 0.65rem; padding: 4px 6px; }
+  .btn-icon { padding: 5px; }
+  .pot-amount { font-size: 2.5rem; }
+  .pot-tabs { gap: 2px; }
+  .pot-tab { padding: 7px 4px; font-size: 0.65rem; letter-spacing: 0; }
+  .countdown-timer { gap: 4px; }
+  .cd-num { font-size: 1.1rem; min-width: 32px; }
+  .cd-unit { font-size: 0.5rem; }
+  .cd-sep { font-size: 0.8rem; }
+  .action-section { padding: 14px 10px; }
+  .btn-row { flex-wrap: wrap; }
+  .btn-bundle { min-width: 45%; }
+  .stats-card { flex-wrap: wrap; gap: 8px; }
+  .stat { min-width: 40%; }
+  .stat-divider { display: none; }
+  .daily-bar-inner { flex-wrap: wrap; gap: 6px; font-size: 0.7rem; }
+  .jackpot-banner-btns { flex-direction: column; gap: 6px; }
+  .flash-banner-inner { flex-wrap: wrap; justify-content: center; gap: 6px; font-size: 0.75rem; }
+  .modal-content { padding: 20px 16px; max-width: 95vw; }
+}
+
+/* Mobile: medium screens */
+@media (max-width: 480px) {
+  .pot-amount { font-size: 3rem; }
+  .btn-mega-bundle { flex: 1; }
+  .referral-code-wrap { flex-direction: column; }
+  .referral-input { text-align: center; }
+  .lb-item { padding: 10px; gap: 8px; }
+  .how-step { padding: 10px; }
+  .jackpot-banner-prize { font-size: 1.8rem; }
+  .countdown-wrap { padding: 0 10px; }
+}
+
+/* Tablet landscape */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .app { max-width: 600px; margin: 0 auto; }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .app { max-width: 500px; margin: 0 auto; }
+  body { display: flex; justify-content: center; }
+}
+
+/* Age confirmation checkbox */
+.age-confirm {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.75rem; color: var(--text2); margin: 8px 0;
+  cursor: pointer; justify-content: center;
+}
+.age-confirm input[type="checkbox"] {
+  width: 18px; height: 18px; accent-color: var(--gold);
+  cursor: pointer;
+}
 
 /* ─── ONBOARDING ─────────────────────────────────────────────────────────── */
 .onboarding-modal { max-width: 400px; }
