@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DEEP GOLD ⛏️ How Deep Will You Dig?</title>
+  <meta name="description" content="Dig deep, find gold, avoid dynamite. Cash out before greed consumes you. How deep can you go?">
+  <meta property="og:title" content="DEEP GOLD ⛏️ Can you beat my depth?">
+  <meta property="og:description" content="I dug deep and found gold. How far can YOU go before greed takes everything?">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/goldmine.css">
+</head>
+<body>
+  <div id="gameWrapper">
+
+    <!-- ═══ MENU SCREEN ═══ -->
+    <div id="menuScreen" class="screen active">
+      <div class="menu-inner">
+        <div class="menu-pickaxe">⛏️</div>
+        <h1 class="menu-title">DEEP<span>GOLD</span></h1>
+        <p class="menu-tagline">How deep will you dig before greed consumes you?</p>
+        <div class="menu-rules">
+          <div class="rule"><span class="rule-icon">⛏️</span> Tap to dig deeper</div>
+          <div class="rule"><span class="rule-icon">💰</span> Find gold &amp; gems</div>
+          <div class="rule"><span class="rule-icon">💥</span> Dynamite = lose gold!</div>
+          <div class="rule"><span class="rule-icon">💵</span> Cash out in time</div>
+        </div>
+        <button id="btnStart" class="btn-start">START DIGGING</button>
+        <div class="menu-records" id="menuRecords"></div>
+        <a href="/" class="back-link">← Back to GoldPot</a>
+      </div>
+    </div>
+
+    <!-- ═══ GAME SCREEN ═══ -->
+    <div id="gameScreen" class="screen">
+      <div class="game-hud">
+        <div class="hud-left">
+          <div class="hud-hearts" id="hudHearts">❤️❤️❤️</div>
+          <div class="hud-depth">⛏️ <span id="hudDepth">0</span>m</div>
+        </div>
+        <div class="hud-center">
+          <div class="hud-biome" id="hudBiome">TOPSOIL</div>
+          <div class="hud-multiplier" id="hudMultiplier">×1</div>
+        </div>
+        <div class="hud-right">
+          <div class="hud-gold" id="hudGoldWrap">🪙 <span id="hudGold">0</span></div>
+          <div class="hud-banked">🏦 <span id="hudBanked">0</span></div>
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="mineCanvas"></canvas>
+        <div class="danger-vignette" id="dangerVignette"></div>
+      </div>
+
+      <div class="game-bottom">
+        <button id="btnCashOut" class="btn-cashout" disabled>
+          💰 CASH OUT (<span id="cashOutAmount">0</span>)
+        </button>
+        <button id="btnDig" class="btn-dig">⛏️</button>
+      </div>
+    </div>
+
+    <!-- ═══ GAME OVER SCREEN ═══ -->
+    <div id="gameOverScreen" class="screen">
+      <div class="gameover-inner">
+        <div class="go-icon">💀</div>
+        <div class="go-title">MINE COLLAPSED!</div>
+        <div class="go-stats">
+          <div class="go-stat">
+            <div class="go-stat-label">DEPTH</div>
+            <div class="go-stat-value" id="goDepth">0m</div>
+          </div>
+          <div class="go-stat">
+            <div class="go-stat-label">GOLD</div>
+            <div class="go-stat-value" id="goGold">0</div>
+          </div>
+          <div class="go-stat">
+            <div class="go-stat-label">ENTRIES</div>
+            <div class="go-stat-value entries" id="goEntries">0</div>
+          </div>
+        </div>
+        <div class="go-record" id="goRecord"></div>
+        <div class="go-minemap" id="goMineMap"></div>
+        <div class="go-buttons">
+          <button id="btnPlayAgain" class="btn-start">⛏️ DIG AGAIN</button>
+          <button id="btnShare" class="btn-share-result">📤 SHARE</button>
+        </div>
+        <a href="/" class="back-link">← Play GoldPot for entries</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="shieldBadge" class="shield-badge hidden">🛡️</div>
+  <div id="muteToggle" class="mute-toggle">🔊</div>
+
+  <script src="/js/goldmine.js"></script>
+</body>
+</html>
