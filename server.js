@@ -21,6 +21,7 @@ const state = {
   onlineCount: 0,
   liveFeed: [],
   leaderboard: [],
+  analytics: [],
   bundles: {
     1:  { price: 100,  label: '$1',   savings: null },
     5:  { price: 400,  label: '$4',   savings: '20% OFF' },
@@ -30,6 +31,19 @@ const state = {
     100: { price: 4000, label: '$40', savings: '60% OFF' },
   },
 };
+
+function trackEvent(event, data = {}) {
+  state.analytics.unshift({ event, ...data, timestamp: Date.now() });
+  if (state.analytics.length > 1000) state.analytics.pop();
+}
+
+function getAnalyticsSummary(hours = 24) {
+  const cutoff = Date.now() - hours * 3600000;
+  const events = state.analytics.filter(e => e.timestamp >= cutoff);
+  const counts = {};
+  for (const e of events) counts[e.event] = (counts[e.event] || 0) + 1;
+  return { hours, totalEvents: events.length, counts, latest: events.slice(0, 40) };
+}
 
 setInterval(() => {
   const base = Math.max(80, getTotalEntries() * 2);
@@ -389,7 +403,7 @@ function updateMissionProgress(player, type, value) {
   for (const m of player.missions) {
     if (m.claimed) continue;
     if (m.type === type) {
-      if (type === 'score_high' || type === 'combo_reach') {
+      if (type === 'score_high' || type === 'combo_reach' || type === 'enter_pots') {
         m.progress = Math.max(m.progress, value);
       } else {
         m.progress += value;
@@ -451,6 +465,18 @@ app.get('/api/state', (req, res) => {
   res.json({ pots, onlineCount: state.onlineCount, recentWinners: state.recentWinners.slice(-10), liveFeed: state.liveFeed.slice(0, 15), leaderboard: state.leaderboard, bundles: state.bundles, serverTime: Date.now(), limitedDrop: (ensureLimitedDrop(), { entries: state.limitedDrop.entries, price: state.limitedDrop.price, remaining: state.limitedDrop.remaining, totalStock: state.limitedDrop.totalStock, label: state.limitedDrop.label, resetAt: state.limitedDrop.resetAt }), flashPot: state.flashPot ? { pot: state.flashPot.pot, prize: state.flashPot.prize, totalEntries: state.flashPot.totalEntries, deadline: state.flashPot.deadline, active: state.flashPot.active, label: state.flashPot.label, color: state.flashPot.color, winner: state.flashPot.winner || null } : null, jackpot: state.jackpot ? { tier: state.jackpot.tier, label: state.jackpot.label, prize: state.jackpot.prize, pot: state.jackpot.pot, totalEntries: state.jackpot.totalEntries, deadline: state.jackpot.deadline, threshold: state.jackpot.threshold, entryPrice: state.jackpot.entryPrice, color: state.jackpot.color, active: state.jackpot.active, winner: state.jackpot.winner || null, pctFull: Math.min(100, Math.round((state.jackpot.pot / state.jackpot.threshold) * 100)) } : null });
 });
 
+app.post('/api/track-event', (req, res) => {
+  const event = String(req.body.event || '').trim();
+  if (!event) return res.status(400).json({ error: 'Missing event' });
+  trackEvent(event, { playerId: req.body.playerId || null, data: req.body.data || {} });
+  res.json({ ok: true });
+});
+
+app.get('/api/metrics', (req, res) => {
+  const hours = Math.min(Math.max(parseInt(req.query.hours) || 24, 1), 168);
+  res.json(getAnalyticsSummary(hours));
+});
+
 app.post('/api/register', (req, res) => {
   const id = generatePlayerId();
   const player = {
@@ -473,6 +499,10 @@ app.post('/api/register', (req, res) => {
     sessionRewardsClaimed: {}, sessionRewardsDate: null,
     // FOMO features
     lastMysteryBox: 0, lightningDeal: null, powerSurgeExpires: 0,
+    // First-purchase funnel
+    firstPurchaseAt: null,
+    starterOfferClaimed: false,
+    firstPurchaseBoostUsed: false,
   };
   state.players.set(id, player);
 
@@ -490,7 +520,47 @@ app.post('/api/register', (req, res) => {
     }
   }
   addFeedEvent('join', { name: player.name });
+  trackEvent('register_completed', { playerId: player.id, referred: !!player.referredBy });
   res.json({ player: sanitizePlayer(player) });
+});
+
+app.post('/api/starter-offer-claim', (req, res) => {
+  const player = state.players.get(req.body.playerId);
+  if (!player) return res.status(404).json({ error: 'Player not found' });
+  if (!player.paymentMethod) return res.status(400).json({ error: 'Add payment method first' });
+  if (player.starterOfferClaimed) return res.status(400).json({ error: 'Starter offer already used' });
+
+  const potId = req.body.potId || 'gold';
+  const potData = state.pots[potId];
+  if (!potData) return res.status(400).json({ error: 'Invalid pot' });
+
+  const cost = 249;
+  const qty = 3;
+  const houseTake = Math.floor(cost * state.houseCut);
+
+  player.totalSpent += cost;
+  player.gamesPlayed += 1;
+  player.totalEntries += qty;
+  player.entries[potId] = (player.entries[potId] || 0) + qty;
+  player.levelInfo = getPlayerLevel(player.totalSpent);
+  player.level = player.levelInfo.level;
+  player.starterOfferClaimed = true;
+  if (!player.firstPurchaseAt) player.firstPurchaseAt = Date.now();
+
+  potData.pot += cost - houseTake;
+  for (let i = 0; i < qty; i++) {
+    potData.entries.push({ playerId: player.id, timestamp: Date.now(), type: 'starter_offer' });
+  }
+  potData.totalEntries += qty;
+
+  updateStreak(player);
+  updateLeaderboard();
+  addFeedEvent('play', { name: player.name, pot: potData.label, qty, type: 'starter_offer' });
+  trackEvent('starter_offer_claimed', { playerId: player.id, potId, cost, qty });
+
+  let winnerDrawn = null;
+  if (potData.pot >= potData.drawThreshold) winnerDrawn = performDraw(potId);
+  res.json({ success: true, qty, cost, player: sanitizePlayer(player), winnerDrawn });
 });
 
 app.post('/api/free-entry', (req, res) => {
@@ -539,6 +609,7 @@ app.post('/api/premium-entry', (req, res) => {
 
   player.entries[pot] = (player.entries[pot] || 0) + totalQty;
   player.totalEntries += totalQty; player.totalSpent += totalCents; player.gamesPlayed++;
+  if (!player.firstPurchaseAt) player.firstPurchaseAt = Date.now();
   if (gameScore > player.bestScore) player.bestScore = gameScore;
 
   for (let i = 0; i < totalQty; i++) potData.entries.push({ playerId, timestamp: Date.now(), type: 'premium' });
@@ -560,6 +631,15 @@ app.post('/api/premium-entry', (req, res) => {
 
   let winnerDrawn = null;
   if (potData.pot >= potData.drawThreshold) winnerDrawn = performDraw(pot);
+
+  trackEvent('premium_entry_completed', {
+    playerId,
+    pot,
+    qty,
+    totalQty,
+    totalCents,
+    gameScore: gameScore || 0,
+  });
 
   res.json({ success: true, bonusEntries, multiplier: mult, player: sanitizePlayer(player), potDisplay: (potData.pot / 100).toFixed(2), winnerDrawn });
 });
@@ -697,25 +777,30 @@ app.post('/api/double-down', (req, res) => {
   const potData = state.pots[pot];
   if (!potData) return res.status(400).json({ error: 'Invalid pot' });
   const qty = Math.min(Math.max(1, parseInt(req.body.originalQty) || 1), 100);
+  const firstPurchaseBoost = req.body.firstPurchaseBoost === true && !player.firstPurchaseBoostUsed;
+  const bonusQty = firstPurchaseBoost ? Math.max(1, Math.ceil(qty * 0.2)) : 0;
+  const finalQty = qty + bonusQty;
 
   // Double entries for 50% of original price
   const halfPrice = Math.ceil((state.bundles[qty] ? state.bundles[qty].price : qty * 100) * 0.5);
   const houseTake = Math.floor(halfPrice * state.houseCut);
   potData.pot += halfPrice - houseTake;
 
-  player.entries[pot] = (player.entries[pot] || 0) + qty;
-  player.totalEntries += qty;
+  player.entries[pot] = (player.entries[pot] || 0) + finalQty;
+  player.totalEntries += finalQty;
   player.totalSpent += halfPrice;
   player.levelInfo = getPlayerLevel(player.totalSpent);
   player.level = player.levelInfo.level;
-  for (let i = 0; i < qty; i++) potData.entries.push({ playerId: player.id, timestamp: Date.now(), type: 'double_down' });
-  potData.totalEntries += qty;
+  for (let i = 0; i < finalQty; i++) potData.entries.push({ playerId: player.id, timestamp: Date.now(), type: 'double_down' });
+  potData.totalEntries += finalQty;
+  if (firstPurchaseBoost) player.firstPurchaseBoostUsed = true;
   updateLeaderboard();
-  addFeedEvent('play', { name: player.name, pot: potData.label, qty, type: 'double_down' });
+  addFeedEvent('play', { name: player.name, pot: potData.label, qty: finalQty, type: 'double_down' });
+  trackEvent('double_down_completed', { playerId: player.id, pot, qty, bonusQty, firstPurchaseBoost, price: halfPrice });
 
   let winnerDrawn = null;
   if (potData.pot >= potData.drawThreshold) winnerDrawn = performDraw(pot);
-  res.json({ success: true, qty, price: halfPrice, player: sanitizePlayer(player), winnerDrawn });
+  res.json({ success: true, qty: finalQty, bonusQty, price: halfPrice, player: sanitizePlayer(player), winnerDrawn });
 });
 
 // ─── Jackpot Entry ──────────────────────────────────────────────────────────
@@ -854,6 +939,7 @@ app.post('/api/payment-method', (req, res) => {
     info.label = `Card ····${String(cardLast4).slice(-4)}`;
   }
   player.paymentMethod = info;
+  trackEvent('payment_method_saved', { playerId, method });
   res.json({ success: true, paymentMethod: info, player: sanitizePlayer(player) });
 });
 
