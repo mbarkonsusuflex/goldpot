@@ -2,8 +2,33 @@ services:
   - type: web
     name: goldpot
     runtime: node
-    buildCommand: npm install
+    buildCommand: npm ci --production
     startCommand: node server.js
+    healthCheckPath: /api/health
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_SECRET
+        generateValue: true
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: DB_PATH
+        value: /var/data/goldpot.db
+      - key: LOG_LEVEL
+        value: info
+      - key: DEMO_MODE
+        value: "false"
+      - key: CANONICAL_HOST
+        value: goldpot.us

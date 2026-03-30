@@ -2,52 +2,147 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>GOLDPOT — Win The National Pot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GOLDPOT — Build The National Jackpot</title>
+  <link rel="preload" href="/css/style.css" as="style">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@700&display=swap" as="style">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
-  <meta name="description" content="Play for $1. Win the national pot. GoldPot — America's most exciting sweepstakes game.">
-  <meta property="og:title" content="GOLDPOT — I'm playing for the national pot 🏆">
-  <meta property="og:description" content="The pot is growing every second. Play for $1 or enter FREE. Will you be the next winner?">
+  <meta name="description" content="Help build the jackpot. 100% of donations go to the prize pots. GoldPot — America's community-built sweepstakes.">
+  <meta property="og:title" content="GOLDPOT — Help build the biggest jackpot 🏆">
+  <meta property="og:description" content="The jackpots are growing. Donate to build the pot — 100% goes to the prize pool. Be part of the launch!">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://goldpot.onrender.com">
+  <meta property="og:url" content="https://goldpot.us">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="GOLDPOT — Win The National Pot 🏆">
   <meta name="twitter:description" content="The pot is growing every second. Play for $1 or enter FREE.">
+  <meta property="og:image" content="https://goldpot.us/img/og-share.png">
+  <meta name="twitter:image" content="https://goldpot.us/img/og-share.png">
+  <link rel="canonical" href="https://goldpot.us/">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <meta name="theme-color" content="#0a0a0f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- Google AdSense — replace YOUR_PUB_ID with your publisher ID -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_PUB_ID" crossorigin="anonymous"></script>
   <link rel="manifest" href="/manifest.json">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>">
+  <link rel="icon" type="image/png" href="/img/gold-pot-logo-favicon.png">
+  <link rel="apple-touch-icon" href="/img/gold-pot-logo-favicon.png">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "GoldPot",
+    "url": "https://goldpot.us",
+    "description": "Play for $1. Win the national pot. America's most exciting sweepstakes game with free entry available.",
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Free entry available — no purchase necessary"
+    },
+    "creator": {
+      "@type": "Organization",
+      "name": "GoldPot Inc.",
+      "email": "support@goldpot.com"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://goldpot.us/" },
+      { "@type": "ListItem", "position": 2, "name": "Play", "item": "https://goldpot.us/#play" },
+      { "@type": "ListItem", "position": 3, "name": "Rules", "item": "https://goldpot.us/rules" },
+      { "@type": "ListItem", "position": 4, "name": "Privacy", "item": "https://goldpot.us/privacy" }
+    ]
+  }
+  </script>
 </head>
 <body>
+  <a href="#app" class="skip-link">Skip to main content</a>
+  <noscript><div style="text-align:center;padding:40px;color:#e8e8f0;background:#0a0a0f;font-family:sans-serif"><h1>GoldPot</h1><p>JavaScript is required to play GoldPot. Please enable JavaScript and reload.</p></div></noscript>
   <!-- ═══ SPLASH ═══ -->
   <div id="splash" class="splash">
     <div class="splash-inner">
-      <div class="logo-glow"></div>
-      <h1 class="logo">GOLD<span>POT</span></h1>
-      <div class="splash-tagline">AMERICA'S NATIONAL POT</div>
+      <div class="logo-video-wrap splash-logo-video">
+        <video class="logo-video" autoplay muted playsinline loop aria-hidden="true">
+          <source src="/img/gold-pot-logo.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="splash-tagline"><h1 class="splash-h1">AMERICA'S NATIONAL POT</h1></div>
       <div class="splash-loader"><div class="loader-bar"><div class="loader-fill"></div></div></div>
     </div>
   </div>
 
+  <!-- ═══ HERO SCREEN (shown before registration) ═══ -->
+  <div id="heroScreen" class="hero-screen hidden">
+    <div class="hero-inner">
+      <div class="logo-video-wrap hero-logo-video">
+        <video class="logo-video" autoplay muted playsinline loop aria-hidden="true">
+          <source src="/img/gold-pot-logo.mp4" type="video/mp4">
+        </video>
+      </div>
+      <p class="hero-tagline">Help Build The Jackpot — 100% Goes To The Prize Pots</p>
+
+      <div class="hero-pot-showcase">
+        <div class="hero-pot-label">Total Jackpot So Far</div>
+        <div class="hero-pot-amount" id="heroPotAmount" aria-live="polite">$0.00</div>
+        <div class="hero-pot-sub">Every dollar donated builds the pot YOU could win at launch</div>
+      </div>
+
+      <div class="hero-how">
+        <div class="hero-how-step"><span class="hero-step-num">1</span><span>Donate any amount to a pot</span></div>
+        <div class="hero-how-step"><span class="hero-step-num">2</span><span>Watch the jackpots grow in real-time</span></div>
+        <div class="hero-how-step"><span class="hero-step-num">3</span><span>When we launch, the pots are LIVE</span></div>
+        <div class="hero-how-step"><span class="hero-step-num">4</span><span>Winners drawn — withdraw via PayPal, CashApp, or Venmo</span></div>
+      </div>
+
+      <div class="hero-proof">
+        <div class="hero-proof-item"><span class="hero-proof-val" id="heroTotalPaid">$0</span><span class="hero-proof-label">Total Paid Out</span></div>
+        <div class="hero-proof-divider"></div>
+        <div class="hero-proof-item"><span class="hero-proof-val" id="heroWinnerCount">0</span><span class="hero-proof-label">Winners</span></div>
+        <div class="hero-proof-divider"></div>
+        <div class="hero-proof-item"><span class="hero-proof-val" id="heroPlayersLive">0</span><span class="hero-proof-label">Playing Now</span></div>
+      </div>
+
+      <div class="hero-recent-winner" id="heroRecentWinner">
+        <span class="hero-winner-icon">🏆</span>
+        <span class="hero-winner-text" id="heroWinnerText">Latest: Someone just won $25!</span>
+      </div>
+
+      <button class="btn btn-premium hero-cta" id="btnHeroJoin">🪙 JOIN & HELP BUILD THE JACKPOT</button>
+      <p class="hero-fine">Donations build the prize pots · 18+ US residents · <a href="/rules">Official Rules</a></p>
+    </div>
+  </div>
+
   <!-- ═══ MAIN APP ═══ -->
-  <div id="app" class="app hidden">
+  <div id="app" class="app hidden" role="main">
 
     <!-- TOP BAR -->
     <header class="top-bar">
-      <div class="top-left"><h1 class="logo-sm">GOLD<span>POT</span></h1></div>
+      <div class="top-left">
+        <div class="logo-video-wrap topbar-logo-video">
+          <video class="logo-video" autoplay muted playsinline loop aria-hidden="true">
+            <source src="/img/gold-pot-logo.mp4" type="video/mp4">
+          </video>
+        </div>
+      </div>
       <div class="top-right">
         <div class="streak-badge" id="streakBadge" title="Daily Streak">🔥 <span id="streakCount">0</span></div>
         <div class="level-badge" id="levelBadge"><span id="levelIcon">🪙</span> <span id="levelName">STARTER</span></div>
-        <div class="live-badge"><span class="pulse"></span> <span id="onlineCount">0</span> live</div>
-        <button id="paymentBtn" class="btn-icon pay-btn-top" title="Payment Method">
+        <div class="live-badge" aria-live="polite"><span class="pulse" aria-hidden="true"></span> <span id="onlineCount">0</span> live</div>
+        <button id="paymentBtn" class="btn-icon pay-btn-top" title="Payment Method" aria-label="Payment Method">
           <span id="payBtnIcon">💳</span>
         </button>
-        <button id="muteBtn" class="btn-icon mute-btn" title="Sound">🔊</button>
-        <button id="shareBtn" class="btn-icon" title="Share">
+        <button id="muteBtn" class="btn-icon mute-btn" title="Sound" aria-label="Toggle sound">🔊</button>
+        <button id="shareBtn" class="btn-icon" title="Share" aria-label="Share">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         </button>
       </div>
@@ -59,27 +154,43 @@
     <div class="daily-bar" id="dailyBar">
       <div class="daily-bar-inner">
         <span>🎁 Daily Bonus Ready!</span>
-        <button class="btn-daily" id="btnDailyBonus">CLAIM</button>
-        <button class="btn-spin" id="btnSpinWheel">🎰 SPIN WHEEL</button>
+        <button class="btn-daily" id="btnDailyBonus" aria-label="Claim daily bonus">CLAIM</button>
+        <button class="btn-spin" id="btnSpinWheel" aria-label="Spin the prize wheel">🎰 SPIN WHEEL<span class="spin-avail" id="spinAvail"></span></button>
       </div>
     </div>
 
-    <!-- LIVE FEED TICKER -->
-    <div class="live-ticker" id="liveTicker">
-      <div class="ticker-track" id="tickerTrack"></div>
+    <!-- LIVE FEED TICKER — border frame around entire page -->
+    <div class="border-ticker" id="liveTicker">
+      <div class="border-ticker-side border-ticker-top">
+        <div class="border-ticker-track" id="tickerTrackTop"></div>
+      </div>
+      <div class="border-ticker-side border-ticker-bottom">
+        <div class="border-ticker-track" id="tickerTrackBottom"></div>
+      </div>
+      <div class="border-ticker-side border-ticker-left">
+        <div class="border-ticker-track" id="tickerTrackLeft"></div>
+      </div>
+      <div class="border-ticker-side border-ticker-right">
+        <div class="border-ticker-track" id="tickerTrackRight"></div>
+      </div>
     </div>
+
+    <!-- ═══ TAB PANELS ═══ -->
+    <div class="tab-panel active" data-panel="play">
 
     <!-- FLASH POT BANNER -->
     <div class="flash-banner hidden" id="flashBanner">
+      <button class="offer-dismiss" data-dismiss="flashBanner" aria-label="Dismiss">✕</button>
       <div class="flash-banner-inner">
         <span class="flash-icon">⚡</span>
         <span class="flash-text">FLASH POT — <b id="flashPrizeLabel">$10</b> in <span id="flashTimeLeft">5:00</span></span>
-        <button class="btn-flash-enter" id="btnFlashEnter">ENTER NOW</button>
+        <button class="btn-flash-enter" id="btnFlashEnter">ENTER — $0.50</button>
       </div>
     </div>
 
     <!-- DIAMOND JACKPOT BANNER -->
     <div class="jackpot-banner hidden" id="jackpotBanner">
+      <button class="offer-dismiss" data-dismiss="jackpotBanner" aria-label="Dismiss">✕</button>
       <div class="jackpot-banner-inner">
         <div class="jackpot-banner-glow"></div>
         <div class="jackpot-banner-top">
@@ -138,14 +249,14 @@
     <!-- POT DISPLAY -->
     <section class="pot-section">
       <div class="pot-label" id="potLabel">MINI POT</div>
-      <div class="pot-amount" id="potAmount">$0.00</div>
-      <div class="pot-entries"><span id="totalEntries">0</span> entries · Round <span id="roundNum">1</span></div>
+      <div class="pot-amount" id="potAmount" aria-live="polite">$0.00</div>
+      <div class="pot-entries"><span id="totalEntries">0</span> donations so far</div>
       <div class="pot-bar-wrap">
         <div class="pot-bar"><div class="pot-bar-fill" id="potBarFill" style="width:0%"></div></div>
-        <div class="pot-bar-label">Drawing at <span id="drawAt">$25.00</span></div>
+        <div class="pot-bar-label">Goal: <span id="drawAt">$25.00</span></div>
       </div>
       <div class="countdown-wrap" id="countdownWrap">
-        <div class="countdown-label">⏱️ DRAWING IN</div>
+        <div class="countdown-label">🚀 LAUNCHING IN</div>
         <div class="countdown-timer" id="countdownTimer">
           <span class="cd-block"><span class="cd-num" id="cdHours">00</span><span class="cd-unit">HR</span></span>
           <span class="cd-sep">:</span>
@@ -156,10 +267,10 @@
       </div>
     </section>
 
-    <!-- GAME AREA -->
-    <section class="game-section">
+    <!-- GAME AREA (hidden pre-launch) -->
+    <section class="game-section hidden" id="gameSection">
       <div class="game-container" id="gameContainer">
-        <canvas id="gameCanvas"></canvas>
+        <canvas id="gameCanvas" role="img" aria-label="Deep Gold mining game"></canvas>
         <div class="game-overlay" id="gameOverlay">
           <div class="mine-hud">
             <div class="mine-hud-left">
@@ -192,59 +303,142 @@
     <!-- ACTION BUTTONS -->
     <section class="action-section">
       <div class="next-action-banner" id="nextActionBanner">
-        <div class="next-action-text" id="nextActionText">Step 1: Add a payment method to unlock instant play.</div>
-        <button class="btn-next-action" id="btnNextAction">ADD PAYMENT</button>
+        <div class="guided-steps" id="guidedSteps">
+          <span class="g-step done" data-gs="1">1</span>
+          <span class="g-step-line"></span>
+          <span class="g-step" data-gs="2">2</span>
+          <span class="g-step-line"></span>
+          <span class="g-step" data-gs="3">3</span>
+          <span class="g-step-line"></span>
+          <span class="g-step" data-gs="4">4</span>
+        </div>
+        <div class=\"next-action-text\" id=\"nextActionText\">Pick a pot and donate to help build the jackpot. 100% of donations go to the prize pool!</div>
+        <button class=\"btn-next-action\" id=\"btnNextAction\">ADD PAYMENT METHOD</button>
       </div>
       <div class="starter-offer hidden" id="starterOffer">
-        <div class="starter-offer-badge">NEW PLAYER BOOST</div>
-        <div class="starter-offer-title">3x ENTRIES FOR $2.49</div>
-        <div class="starter-offer-sub">One-time launch pack to kickstart your odds</div>
-        <button class="btn-starter-offer" id="btnStarterOffer">CLAIM STARTER OFFER</button>
+        <button class="offer-dismiss" data-dismiss="starterOffer" aria-label="Dismiss">✕</button>
+        <div class="starter-offer-badge">LAUNCH SPECIAL</div>
+        <div class="starter-offer-title">DONATE $2.49 — TRIPLE IMPACT</div>
+        <div class="starter-offer-sub">Your donation goes 3× further during pre-launch</div>
+        <button class="btn-starter-offer" id="btnStarterOffer">💰 DONATE $2.49</button>
       </div>
-      <button class="btn btn-premium" id="btnPremium">
+      <button class="btn btn-primary-cta" id="btnPremium">
         <span class="btn-price">$1</span>
-        <span class="btn-label">PLAY & ENTER POT</span>
-        <span class="btn-sub">Premium entry + score bonuses</span>
+        <span class="btn-label">💰 DONATE TO THIS POT</span>
+        <span class="btn-sub">100% goes directly into the jackpot</span>
       </button>
-      <div class="btn-row">
-        <button class="btn btn-bundle" id="btnBundle5" data-qty="5">
-          <span class="btn-savings">20% OFF</span>
-          <span class="btn-label">5x — $4</span>
-        </button>
-        <button class="btn btn-bundle" id="btnBundle10" data-qty="10">
-          <span class="btn-savings">30% OFF</span>
-          <span class="btn-label">10x — $7</span>
-        </button>
-        <button class="btn btn-bundle hot" id="btnBundle25" data-qty="25">
-          <span class="btn-savings">🔥 40% OFF</span>
-          <span class="btn-label">25x — $15</span>
-        </button>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-mega-bundle" id="btnBundle50" data-qty="50">
-          <span class="btn-savings">⭐ 50% OFF — BEST DEAL</span>
-          <span class="btn-label">50x ENTRIES — $25</span>
-        </button>
-        <button class="btn btn-free" id="btnFree">
+      <div class="btn-row btn-row-secondary">
+        <button class="btn btn-free" id="btnFree" style="display:none">
           <span class="btn-label">FREE ENTRY</span>
-          <span class="btn-sub">No purchase necessary</span>
+          <span class="btn-sub" id="freeEntryStatus">1 per pot per round</span>
+        </button>
+        <button class="btn btn-quick-entry" id="btnQuickEntry" style="display:none">
+          <span class="btn-label">⚡ QUICK — $1</span>
+          <span class="btn-sub">Skip game, instant entry</span>
         </button>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-whale-bundle" id="btnBundle100" data-qty="100">
-          <span class="btn-savings">💎 60% OFF — WHALE PACK</span>
-          <span class="btn-label">100x ENTRIES — $40</span>
-          <span class="btn-sub">For serious players only</span>
-        </button>
+      <!-- Collapsible buy-more section -->
+      <button class="btn-show-bundles" id="btnShowBundles" aria-expanded="false" aria-controls="bundleGroup">
+        � Donate More <span class="chevron">▼</span>
+      </button>
+      <div class="bundle-group" id="bundleGroup">
+        <div class="btn-row">
+          <button class="btn btn-bundle btn-donate-pot" data-amount="500">
+            <span class="btn-label">$5</span>
+          </button>
+          <button class="btn btn-bundle btn-donate-pot" data-amount="1000">
+            <span class="btn-label">$10</span>
+          </button>
+          <button class="btn btn-bundle hot btn-donate-pot" data-amount="2500">
+            <span class="btn-savings">🔥 POPULAR</span>
+            <span class="btn-label">$25</span>
+          </button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-mega-bundle btn-donate-pot" data-amount="5000">
+            <span class="btn-savings">⭐ BIG IMPACT</span>
+            <span class="btn-label">$50</span>
+          </button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-whale-bundle btn-donate-pot" data-amount="10000">
+            <span class="btn-savings">💎 JACKPOT BUILDER</span>
+            <span class="btn-label">$100</span>
+            <span class="btn-sub">Make a real dent in the pot</span>
+          </button>
+        </div>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-ad" id="btnWatchAd">
-          <span class="btn-ad-icon">📺</span>
-          <span class="btn-label">WATCH AD = FREE ENTRY</span>
-          <span class="btn-sub"><span id="adsLeft">5</span>/5 left today</span>
-        </button>
+      <!-- Q6: collapsible advanced actions (hidden pre-launch) -->
+      <button class="btn-show-more-actions hidden" id="btnShowMoreActions" aria-expanded="false" aria-controls="advancedActions">
+        More options <span class="chevron">▼</span>
+      </button>
+      <div class="action-advanced" id="advancedActions">
+        <div class="btn-row">
+          <button class="btn btn-ad" id="btnWatchAd">
+            <span class="btn-ad-icon">📺</span>
+            <span class="btn-label">WATCH AD = FREE ENTRY</span>
+            <span class="btn-sub"><span id="adsLeft">3</span>/<span id="adsMax">3</span> left today</span>
+          </button>
+        </div>
+        <div class="btn-row btn-row-mini">
+          <button class="btn btn-lucky-boost" id="btnLuckyBoost">
+            <span class="btn-label">🍀 LUCKY BOOST</span>
+            <span class="btn-sub">$1.49 — next entry gets priority</span>
+          </button>
+          <button class="btn btn-second-chance" id="btnSecondChance">
+            <span class="btn-label">🔄 2ND CHANCE</span>
+            <span class="btn-sub">$0.99 — priority re-entry</span>
+          </button>
+        </div>
+        <div class="btn-row btn-row-mini">
+          <button class="btn btn-gift" id="btnGift">
+            <span class="btn-label">🎁 GIFT ENTRIES</span>
+            <span class="btn-sub">Send entries to a friend</span>
+          </button>
+          <button class="btn btn-cosmetics" id="btnCosmetics">
+            <span class="btn-label">✨ CHAT SHOP</span>
+            <span class="btn-sub">Colors, borders, titles</span>
+          </button>
+        </div>
       </div>
     </section>
+
+    <!-- URGENCY BUNDLE BANNER -->
+    <section class="urgency-section hidden" id="urgencySection">
+      <div class="urgency-card">
+        <div class="urgency-badge">⏰ POT ALMOST FULL!</div>
+        <div class="urgency-header">
+          <span class="urgency-pot-label" id="urgencyPotLabel">GOLD POT</span>
+          <span class="urgency-fill" id="urgencyFill">87% Full</span>
+        </div>
+        <div class="urgency-deal">
+          <span class="urgency-entries" id="urgencyEntries">6x Entries</span>
+          <span class="urgency-original" id="urgencyOriginal">$4.99</span>
+          <span class="urgency-sale" id="urgencySale">$3.49</span>
+          <span class="urgency-discount" id="urgencyDiscount">30% OFF</span>
+        </div>
+        <div class="urgency-bar-wrap">
+          <div class="urgency-bar"><div class="urgency-bar-fill" id="urgencyBarFill" style="width:87%"></div></div>
+        </div>
+        <button class="btn-urgency" id="btnUrgencyBuy">⏰ GRAB BEFORE DRAW</button>
+        <div class="urgency-fomo">Drawing any moment — don't miss out!</div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS (in Play tab for new-user discoverability) -->
+    <section class="how-section" id="howSection">
+      <h2 class="section-title">HOW IT WORKS</h2>
+      <div class="how-steps">
+        <div class="how-step"><div class="how-num">1</div><div class="how-text"><strong>Pick a Pot</strong><br>Mini ($25), Gold ($100), Mega ($500), or 💎 Jackpot (up to $250K!)</div></div>
+        <div class="how-step"><div class="how-num">2</div><div class="how-text"><strong>Play Deep Gold</strong><br>Dig deep, find treasure, cash out before dynamite blows your gold!</div></div>
+        <div class="how-step"><div class="how-num">3</div><div class="how-text"><strong>Winner Drawn</strong><br>Pot fills up → one entry is randomly selected → winner gets the prize. Every entry has equal odds.</div></div>
+        <div class="how-step"><div class="how-num">4</div><div class="how-text"><strong>Withdraw Real Cash</strong><br>Winners cash out via PayPal, CashApp, or Venmo. Payouts processed within 1–3 business days.</div></div>
+      </div>
+    </section>
+
+    </div><!-- /tab-panel play -->
+
+    <div class="tab-panel" data-panel="offers">
 
     <!-- VIP PASS -->
     <section class="vip-section" id="vipSection">
@@ -256,7 +450,7 @@
         </div>
         <div class="vip-perks">
           <div class="vip-perk">✅ 2-3x daily bonus entries</div>
-          <div class="vip-perk">✅ 10-15 ad entries/day (vs 5)</div>
+          <div class="vip-perk">✅ 8-10 ad entries/day (vs 3)</div>
           <div class="vip-perk">✅ Auto streak shield 🛡️</div>
           <div class="vip-perk">✅ VIP badge + rank boost</div>
         </div>
@@ -268,6 +462,17 @@
             <span class="vip-best-tag">BEST VALUE</span>
             <span class="vip-price">$14.99</span><span class="vip-period">/month</span>
           </button>
+          <button class="btn-vip btn-vip-diamond" id="btnVipDiamond" data-tier="diamond">
+            <span class="vip-diamond-tag">💎 DIAMOND</span>
+            <span class="vip-price">$29.99</span><span class="vip-period">/month</span>
+          </button>
+        </div>
+        <div class="vip-diamond-perks hidden" id="vipDiamondPerks">
+          <div class="vip-perk">💎 5x daily bonus entries</div>
+          <div class="vip-perk">💎 Unlimited ad entries</div>
+          <div class="vip-perk">💎 Free mystery box weekly</div>
+          <div class="vip-perk">💎 Diamond jackpot access</div>
+          <div class="vip-perk">💎 Streak shield always on</div>
         </div>
         <div class="vip-status hidden" id="vipStatus">
           <span class="vip-active-badge">👑 VIP ACTIVE</span>
@@ -282,6 +487,7 @@
 
     <!-- LIGHTNING DEAL (personal rotating offer) -->
     <section class="lightning-section" id="lightningSection">
+      <button class="offer-dismiss" data-dismiss="lightningSection" aria-label="Dismiss">✕</button>
       <div class="lightning-card">
         <div class="lightning-badge">⚡ YOUR EXCLUSIVE DEAL</div>
         <div class="lightning-header">
@@ -296,7 +502,7 @@
         </div>
         <div class="lightning-timer-wrap">
           <div class="lightning-timer-bar"><div class="lightning-timer-fill" id="lightningTimerFill"></div></div>
-          <span class="lightning-time" id="lightningTime">1:30</span>
+          <span class="lightning-time" id="lightningTimer">1:30</span>
         </div>
         <button class="btn-lightning" id="btnLightningBuy">⚡ GRAB THIS DEAL</button>
         <div class="lightning-fomo">Other players are watching this deal...</div>
@@ -305,6 +511,7 @@
 
     <!-- MYSTERY BOX -->
     <section class="mystery-section" id="mysterySection">
+      <button class="offer-dismiss" data-dismiss="mysterySection" aria-label="Dismiss">✕</button>
       <div class="mystery-header">
         <span class="mystery-icon">🎁</span>
         <h3 class="mystery-title">MYSTERY BOX</h3>
@@ -345,6 +552,7 @@
 
     <!-- POWER SURGE -->
     <section class="surge-section" id="surgeSection">
+      <button class="offer-dismiss" data-dismiss="surgeSection" aria-label="Dismiss">✕</button>
       <div class="surge-card">
         <div class="surge-glow"></div>
         <div class="surge-header">
@@ -363,6 +571,7 @@
 
     <!-- ALL-IN PACK -->
     <section class="allin-section" id="allinSection">
+      <button class="offer-dismiss" data-dismiss="allinSection" aria-label="Dismiss">✕</button>
       <div class="allin-card">
         <div class="allin-header">
           <span class="allin-icon">🎯</span>
@@ -385,6 +594,7 @@
 
     <!-- STREAK SAVER -->
     <div class="streak-saver hidden" id="streakSaver">
+      <button class="offer-dismiss" data-dismiss="streakSaver" aria-label="Dismiss">✕</button>
       <div class="saver-inner">
         <span class="saver-icon">🛡️</span>
         <div class="saver-text">
@@ -397,6 +607,7 @@
 
     <!-- LIMITED EDITION DROP -->
     <section class="limited-section" id="limitedSection">
+      <button class="offer-dismiss" data-dismiss="limitedSection" aria-label="Dismiss">✕</button>
       <div class="limited-card">
         <div class="limited-fire">🔥</div>
         <div class="limited-badge">LIMITED EDITION</div>
@@ -417,8 +628,20 @@
       </div>
     </section>
 
+    </div><!-- /tab-panel offers -->
+
+    <div class="tab-panel" data-panel="progress">
+
     <!-- YOUR STATS -->
     <section class="stats-section">
+      <div class="balance-card" id="balanceCard">
+        <div class="balance-header">
+          <span class="balance-label">💰 YOUR WINNINGS</span>
+        </div>
+        <div class="balance-amount" id="balanceAmount">$0.00</div>
+        <div class="balance-detail" id="balanceDetail"></div>
+        <button class="btn-withdraw" id="btnWithdraw">WITHDRAW</button>
+      </div>
       <div class="stats-card">
         <div class="stat"><div class="stat-val" id="yourEntries">0</div><div class="stat-label">Your Entries</div></div>
         <div class="stat-divider"></div>
@@ -458,116 +681,292 @@
       </div>
     </div>
 
+    <hr class="section-divider">
     <!-- DAILY MISSIONS -->
     <section class="missions-section" id="missionsSection">
-      <h3 class="section-title">🎯 DAILY MISSIONS</h3>
+      <h2 class="section-title section-title-sticky">🎯 DAILY MISSIONS</h2>
       <div class="missions-list" id="missionsList"></div>
     </section>
 
+    <!-- BATTLE PASS -->
+    <section class="battle-pass-section" id="battlePassSection">
+      <div class="bp-header">
+        <div class="bp-header-left">
+          <span class="bp-icon">🎖️</span>
+          <h3 class="bp-title">BATTLE PASS</h3>
+          <span class="bp-season" id="bpSeason">Season 1</span>
+        </div>
+        <div class="bp-header-right">
+          <span class="bp-timer" id="bpTimer">6d 23h left</span>
+        </div>
+      </div>
+      <div class="bp-xp-bar-wrap">
+        <div class="bp-xp-bar"><div class="bp-xp-fill" id="bpXpFill" style="width:0%"></div></div>
+        <span class="bp-xp-text" id="bpXpText">0 / 100 XP</span>
+      </div>
+      <div class="bp-track" id="bpTrack"></div>
+      <div class="bp-premium-cta hidden" id="bpPremiumCta">
+        <div class="bp-premium-inner">
+          <span class="bp-premium-icon">⭐</span>
+          <span class="bp-premium-text">Unlock Premium Track — 2x rewards!</span>
+          <button class="btn-bp-premium" id="btnBpBuy">$9.99</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOURNAMENT -->
+    <section class="tournament-section" id="tournamentSection">
+      <div class="tourney-card">
+        <div class="tourney-header">
+          <span class="tourney-icon">🏟️</span>
+          <h3 class="tourney-title" id="tourneyTitle">HOURLY CHALLENGE</h3>
+          <span class="tourney-timer" id="tourneyTimer">59:59</span>
+        </div>
+        <div class="tourney-prize-row">
+          <span class="tourney-prize-label">Prize Pool</span>
+          <span class="tourney-prize-val" id="tourneyPrize">$0.00</span>
+        </div>
+        <div class="tourney-entry-fee">Entry: $<span id="tourneyFee">2.00</span></div>
+        <div class="tourney-leaderboard" id="tourneyLeaderboard"></div>
+        <button class="btn-tourney" id="btnTourneyEnter">🏟️ ENTER TOURNAMENT</button>
+        <div class="tourney-entered hidden" id="tourneyEntered">
+          <span class="tourney-entered-badge">✅ ENTERED</span>
+          <span class="tourney-your-score">Your Score: <b id="tourneyYourScore">0</b></span>
+        </div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
     <!-- MILESTONES -->
     <section class="milestones-section" id="milestonesSection">
-      <h3 class="section-title">🏅 MILESTONES</h3>
+      <h2 class="section-title section-title-sticky">🏅 MILESTONES</h2>
       <div class="milestones-list" id="milestonesList"></div>
     </section>
 
+    <hr class="section-divider">
     <!-- ACHIEVEMENTS -->
     <section class="achievements-section" id="achievementsSection">
-      <h3 class="section-title">🏅 ACHIEVEMENTS</h3>
+      <h2 class="section-title section-title-sticky">🏅 ACHIEVEMENTS</h2>
       <div class="achievements-grid" id="achievementsGrid"></div>
     </section>
 
+    </div><!-- /tab-panel progress -->
+
+    <div class="tab-panel" data-panel="social">
+
     <!-- LEADERBOARD -->
     <section class="leaderboard-section" id="leaderboardSection">
-      <h3 class="section-title">👑 LEADERBOARD</h3>
+      <div class="lb-header">
+        <h3 class="lb-title">LEADERBOARD</h3>
+        <div class="lb-subtitle">Top Players This Season</div>
+      </div>
+      <div class="lb-podium" id="leaderboardPodium"></div>
       <div id="leaderboardList" class="leaderboard-list">
         <div class="lb-empty">Play to get on the board!</div>
       </div>
     </section>
 
-    <!-- REFERRAL -->
-    <section class="referral-section">
+    <!-- REFERRAL (consolidated: invite + dashboard) -->
+    <section class="referral-section" id="referralDashboard">
       <div class="referral-card">
-        <div class="referral-title">🔥 SHARE & GET 2 FREE ENTRIES</div>
-        <div class="referral-sub">Every friend = 2 bonus entries for you. Stack them up!</div>
+        <div class="referral-title">🔥 INVITE FRIENDS — YOU BOTH WIN</div>
+        <div class="referral-sub">You get <strong>5 free entries</strong> + your friend gets <strong>2 bonus entries</strong>. Stack them up!</div>
+        <div class="referral-stats-grid">
+          <div class="ref-stat-card">
+            <div class="ref-stat-val" id="refDashCount">0</div>
+            <div class="ref-stat-label">Friends Referred</div>
+          </div>
+          <div class="ref-stat-card">
+            <div class="ref-stat-val" id="refDashEntries">0</div>
+            <div class="ref-stat-label">Entries Earned</div>
+          </div>
+        </div>
         <div class="referral-code-wrap">
-          <input type="text" id="referralCode" class="referral-input" readonly>
-          <button class="btn-copy" id="btnCopy">COPY</button>
+          <input type="text" id="referralCode" class="referral-input" readonly aria-label="Your referral code">
+          <button class="btn-copy" id="btnCopy">COPY LINK</button>
         </div>
         <div class="referral-share-row">
           <button class="btn-share btn-share-x" id="shareX">𝕏 Post</button>
           <button class="btn-share btn-share-sms" id="shareSMS">💬 Text</button>
           <button class="btn-share btn-share-link" id="shareLink">🔗 Link</button>
         </div>
+        <div class="ref-list-wrap">
+          <div class="ref-list-title">Recent Referrals</div>
+          <div class="ref-list" id="refDashList">
+            <div class="ref-empty">Share your code to start earning!</div>
+          </div>
+        </div>
       </div>
     </section>
+
+    <!-- PAYOUT PROOF — total paid, winner count, payout speed -->
+    <section class="payout-proof-section" id="payoutProofSection">
+      <div class="payout-proof-card">
+        <h3 class="payout-proof-title">💰 REAL CASH PAYOUTS</h3>
+        <div class="payout-proof-stats">
+          <div class="payout-stat"><span class="payout-stat-val" id="proofTotalPaid">$0</span><span class="payout-stat-label">Total Paid Out</span></div>
+          <div class="payout-stat-divider"></div>
+          <div class="payout-stat"><span class="payout-stat-val" id="proofWinnerCount">0</span><span class="payout-stat-label">Winners</span></div>
+          <div class="payout-stat-divider"></div>
+          <div class="payout-stat"><span class="payout-stat-val">1–3 days</span><span class="payout-stat-label">Payout Speed</span></div>
+        </div>
+        <div class="payout-methods">
+          <span class="payout-method">PayPal</span>
+          <span class="payout-method">CashApp</span>
+          <span class="payout-method">Venmo</span>
+        </div>
+        <p class="payout-guarantee">100% of winnings are withdrawable. No hidden fees. $5 minimum withdrawal.</p>
+      </div>
+    </section>
+
+    <!-- ═══ LAUNCH FUND ═══ -->
+    <section class="launch-fund-section" id="launchFundSection">
+      <div class="launch-fund-card">
+        <div class="launch-fund-header">
+          <span class="launch-fund-icon">🚀</span>
+          <h3 class="launch-fund-title">HELP US LAUNCH</h3>
+        </div>
+        <p class="launch-fund-desc">Every dollar donated goes straight into the prize pots. Help us reach our goal and we launch the real platform!</p>
+        <div class="launch-fund-bar-wrap">
+          <div class="launch-fund-bar">
+            <div class="launch-fund-fill" id="launchFundFill" style="width:0%"></div>
+          </div>
+          <div class="launch-fund-labels">
+            <span class="launch-fund-raised" id="launchFundRaised">$0</span>
+            <span class="launch-fund-goal" id="launchFundGoal">Goal: $100,000</span>
+          </div>
+        </div>
+        <div class="launch-fund-donors" id="launchFundDonors">0 supporters so far</div>
+        <div class="launch-fund-buttons">
+          <button class="btn btn-donate" data-amount="1000">$10</button>
+          <button class="btn btn-donate" data-amount="2500">$25</button>
+          <button class="btn btn-donate" data-amount="5000">$50</button>
+          <button class="btn btn-donate" data-amount="10000">$100</button>
+          <button class="btn btn-donate" data-amount="25000">$250</button>
+          <button class="btn btn-donate" data-amount="50000">$500</button>
+          <button class="btn btn-donate" data-amount="100000">$1,000</button>
+        </div>
+        <p class="launch-fund-fine">Donations fund prize pots directly. Non-refundable. Thank you! 💛</p>
+      </div>
+    </section>
+
+    <!-- AD BANNER -->
+    <div class="ad-banner-slot" id="adSlotMid">
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-YOUR_PUB_ID" data-ad-slot="YOUR_AD_SLOT_1" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    </div>
 
     <!-- RECENT WINNERS -->
     <section class="winners-section">
-      <h3 class="section-title">🏆 RECENT WINNERS</h3>
-      <div id="winnersList" class="winners-list"><div class="winner-empty">Be the first winner!</div></div>
+      <h2 class="section-title">🏆 RECENT WINNERS</h2>
+      <div id="winnersList" class="winners-list"><div class="winner-empty">🎰 No winners yet — be the first!</div></div>
     </section>
 
-    <!-- HOW IT WORKS -->
-    <section class="how-section">
-      <h3 class="section-title">HOW IT WORKS</h3>
-      <div class="how-steps">
-        <div class="how-step"><div class="how-num">1</div><div class="how-text"><strong>Pick a Pot</strong><br>Mini ($25), Gold ($100), Mega ($500), or 💎 Jackpot (up to $250K!)</div></div>
-        <div class="how-step"><div class="how-num">2</div><div class="how-text"><strong>Play Deep Gold</strong><br>Dig deep, find treasure, cash out before dynamite blows your gold!</div></div>
-        <div class="how-step"><div class="how-num">3</div><div class="how-text"><strong>Win Big</strong><br>Pot fills → winner drawn → new round starts!</div></div>
-        <div class="how-step"><div class="how-num">4</div><div class="how-text"><strong>Stack the Odds</strong><br>Bundles, streaks, referrals, daily bonuses</div></div>
-      </div>
-    </section>
+    <!-- AD BANNER (BOTTOM) -->
+    <div class="ad-banner-slot" id="adSlotBottom">
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-YOUR_PUB_ID" data-ad-slot="YOUR_AD_SLOT_2" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    </div>
+
+    </div><!-- /tab-panel social -->
+
+    <!-- SCROLL TO TOP -->
+    <button class="scroll-to-top" id="btnScrollTop" aria-label="Scroll to top">↑</button>
+
+    <!-- Q13: Tab swipe peek indicators -->
+    <div class="tab-peek-indicator left" id="tabPeekLeft"></div>
+    <div class="tab-peek-indicator right" id="tabPeekRight"></div>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav" id="bottomNav" role="tablist" aria-label="Main navigation">
+      <button class="bottom-nav-btn active" data-tab="play" role="tab" aria-selected="true" aria-label="Play"><span class="bnav-icon" aria-hidden="true">🎰</span><span class="bnav-label">Play</span></button>
+      <button class="bottom-nav-btn" data-tab="offers" role="tab" aria-selected="false" aria-label="Offers"><span class="bnav-icon" aria-hidden="true">🎁</span><span class="bnav-label">Offers</span></button>
+      <button class="bottom-nav-btn" data-tab="progress" role="tab" aria-selected="false" aria-label="Progress"><span class="bnav-icon" aria-hidden="true">🏆</span><span class="bnav-label">Progress</span></button>
+      <button class="bottom-nav-btn" data-tab="social" role="tab" aria-selected="false" aria-label="Social"><span class="bnav-icon" aria-hidden="true">👥</span><span class="bnav-label">Social</span></button>
+    </nav>
 
     <!-- FOOTER -->
     <footer class="footer">
-      <p>NO PURCHASE NECESSARY TO ENTER OR WIN. A PURCHASE WILL NOT INCREASE YOUR CHANCES OF WINNING.</p>
-      <p>Free method of entry available. Must be 18+ and US resident. Void where prohibited.</p>
-      <p class="footer-links"><a href="/rules">Official Rules</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
+      <div class="footer-trust">
+        <span class="footer-trust-badge">🔒 Secure Payments</span>
+        <span class="footer-trust-badge">✅ Verified Payouts</span>
+        <span class="footer-trust-badge">🎲 Fair RNG</span>
+      </div>
+      <p>NO PURCHASE NECESSARY TO ENTER OR WIN. Each entry carries equal weight; purchasing additional entries increases the total number of entries you hold. Free method of entry available.</p>
+      <p>Must be 18+ and US resident. Void where prohibited. See Official Rules for complete details.</p>
+      <p class="footer-links"><a href="/rules">Official Rules</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/responsible-gaming">Responsible Gaming</a></p>
+      <p class="footer-responsible">🛡️ Play responsibly. Set spending limits in your account. If you need help, contact the <a href="https://www.ncpgambling.org/" rel="noopener noreferrer" target="_blank">National Council on Problem Gambling</a> at 1-800-522-4700.</p>
+      <p class="footer-company">GoldPot Inc. · Questions? <a href="mailto:support@goldpot.com">support@goldpot.com</a></p>
       <p class="footer-copy">© 2026 GoldPot Inc.</p>
     </footer>
   </div>
 
   <!-- WINNER MODAL -->
-  <div id="winnerModal" class="modal hidden">
+  <div id="winnerModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="winnerTitle">
     <div class="modal-backdrop"></div>
     <div class="modal-content winner-modal">
       <div class="confetti-container" id="confetti"></div>
       <div class="winner-trophy">🏆</div>
-      <h2 class="winner-title">WE HAVE A WINNER!</h2>
+      <h2 class="winner-title" id="winnerTitle">WE HAVE A WINNER!</h2>
       <div class="winner-name" id="winnerName">Player</div>
       <div class="winner-prize">WON <span id="winnerPrize">$0.00</span></div>
       <div class="winner-round">Round <span id="winnerRound">1</span></div>
+      <div class="winner-share-row hidden" id="winnerShareRow">
+        <div class="winner-share-label">📣 Tell everyone!</div>
+        <div class="winner-share-btns">
+          <button class="btn-win-share btn-win-x" id="winShareX">𝕏 Post</button>
+          <button class="btn-win-share btn-win-sms" id="winShareSMS">💬 Text</button>
+          <button class="btn-win-share btn-win-native" id="winShareNative">🚀 Share</button>
+          <button class="btn-win-share btn-win-copy" id="winShareCopy">📋 Copy</button>
+        </div>
+      </div>
       <button class="btn btn-premium" id="btnNewRound">PLAY NEXT ROUND →</button>
     </div>
   </div>
 
   <!-- SPIN WHEEL MODAL -->
-  <div id="wheelModal" class="modal hidden">
+  <div id="wheelModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="wheelTitle">
     <div class="modal-backdrop"></div>
     <div class="modal-content wheel-modal">
-      <h2 class="wheel-title">🎰 DAILY SPIN</h2>
-      <div class="wheel-container">
-        <div class="wheel" id="spinWheel">
-          <div class="wheel-segment" style="--i:0;--c:#f0c040">1</div>
-          <div class="wheel-segment" style="--i:1;--c:#60c0ff">2</div>
-          <div class="wheel-segment" style="--i:2;--c:#ff6090">3</div>
-          <div class="wheel-segment" style="--i:3;--c:#40e070">5</div>
-          <div class="wheel-segment" style="--i:4;--c:#b060ff">2×</div>
-          <div class="wheel-segment" style="--i:5;--c:#ff8040">10</div>
-          <div class="wheel-segment" style="--i:6;--c:#60ffe0">🛡️</div>
-          <div class="wheel-segment" style="--i:7;--c:#ffe060">25!</div>
+      <h2 class="wheel-title"><span class="wheel-title-icon">🎰</span> DAILY SPIN</h2>
+      <div class="wheel-stage">
+        <div class="wheel-container">
+          <div class="wheel-glow"></div>
+          <canvas id="wheelLedCanvas" width="380" height="380" class="wheel-led-canvas" aria-hidden="true"></canvas>
+          <canvas id="wheelCanvas" width="340" height="340" role="img" aria-label="Prize wheel"></canvas>
+          <div class="wheel-center-cap"><span class="wheel-center-logo">GP</span></div>
+          <div class="wheel-pointer-wrap">
+            <svg class="wheel-pointer-svg" viewBox="0 0 44 56" width="34" height="42">
+              <defs>
+                <linearGradient id="ptrGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#ffe88a"/>
+                  <stop offset="100%" stop-color="#d4a020"/>
+                </linearGradient>
+                <filter id="ptrShadow"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.5"/></filter>
+              </defs>
+              <polygon points="22,56 2,4 14,0 22,8 30,0 42,4" fill="url(#ptrGrad)" stroke="#1a1000" stroke-width="1.5" filter="url(#ptrShadow)"/>
+              <circle cx="22" cy="16" r="4" fill="#fff8" stroke="#b8860d" stroke-width="1"/>
+            </svg>
+          </div>
         </div>
-        <div class="wheel-pointer">▼</div>
       </div>
-      <div class="wheel-result hidden" id="wheelResult"></div>
-      <button class="btn btn-premium" id="btnDoSpin">SPIN!</button>
+      <div class="wheel-result-wrap hidden" id="wheelResultWrap">
+        <div class="wheel-result-glow"></div>
+        <div class="wheel-result-text" id="wheelResult"></div>
+      </div>
+      <button class="btn btn-premium wheel-spin-btn" id="btnDoSpin">
+        <span class="wheel-spin-btn-icon">🎡</span> SPIN!
+      </button>
     </div>
   </div>
 
   <!-- ONBOARDING MODAL (2-step: Name → Payment) -->
-  <div id="nameModal" class="modal hidden">
+  <div id="nameModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="nameTitle">
     <div class="modal-backdrop"></div>
     <div class="modal-content name-modal onboarding-modal">
+      <!-- Q45: progress indicator dots -->
+      <div class="onboard-progress" id="onboardProgress">
+        <div class="onboard-progress-dot active"></div>
+        <div class="onboard-progress-dot"></div>
+      </div>
       <!-- Step indicator -->
       <div class="onboard-steps">
         <div class="onboard-step active" data-step="1"><span>1</span></div>
@@ -578,11 +977,25 @@
       <!-- STEP 1: Name -->
       <div id="onboardStep1" class="onboard-panel">
         <div class="name-icon">🪙</div>
-        <h2 class="name-title">WELCOME TO GOLDPOT</h2>
-        <p class="name-sub">Join in seconds. Start winning today.</p>
-        <input type="text" id="playerNameInput" class="name-input" placeholder="Your name" maxlength="20" autocomplete="off">
-        <input type="text" id="refCodeInput" class="name-input ref-input" placeholder="Referral code (optional)" maxlength="8" autocomplete="off">
-        <label class="age-confirm"><input type="checkbox" id="ageConfirm"> I confirm I am 18+ and a US resident</label>
+        <h2 class="name-title" id="nameTitle">CREATE YOUR ACCOUNT</h2>
+        <p class="name-sub">Takes 10 seconds. Your first entry is FREE.</p>
+        <input type="text" id="playerNameInput" class="name-input" placeholder="Your name" maxlength="20" autocomplete="off" aria-label="Your name">
+        <input type="email" id="playerEmailInput" class="name-input" placeholder="Email (for winner notifications)" maxlength="100" autocomplete="email" aria-label="Email address">
+        <input type="hidden" id="playerStateInput" value="">
+        <div class="state-picker" id="statePicker">
+          <button type="button" class="state-picker-btn name-input" id="statePickerBtn" aria-label="Select your state" aria-haspopup="listbox" aria-expanded="false">
+            <span class="state-picker-label" id="statePickerLabel">Select your state</span>
+            <svg class="state-picker-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="state-picker-dropdown hidden" id="stateDropdown" role="listbox">
+            <div class="state-picker-search-wrap">
+              <input type="text" class="state-picker-search" id="stateSearch" placeholder="Search states..." autocomplete="off" aria-label="Search states">
+            </div>
+            <div class="state-picker-list" id="stateList"></div>
+          </div>
+        </div>
+        <input type="text" id="refCodeInput" class="name-input ref-input" placeholder="Referral code (optional)" maxlength="8" autocomplete="off" aria-label="Referral code">
+        <label class="age-confirm"><input type="checkbox" id="ageConfirm" aria-label="I confirm I am 18+ and a US resident"> I confirm I am 18+ and a US resident</label>
         <button class="btn btn-premium" id="btnJoin" disabled>NEXT →</button>
         <p class="name-legal">Must be 18+. US residents only. By joining you agree to our <a href="/terms" style="color:var(--gold)">Terms</a> and <a href="/privacy" style="color:var(--gold)">Privacy Policy</a>.</p>
       </div>
@@ -623,12 +1036,12 @@
         </div>
         <!-- Card form (shown when Card is selected) -->
         <div id="cardForm" class="card-form hidden">
-          <input type="text" id="cardNumber" class="name-input" placeholder="Card number" maxlength="19" autocomplete="cc-number" inputmode="numeric">
+          <input type="text" id="cardNumber" class="name-input" placeholder="Card number" maxlength="19" autocomplete="cc-number" inputmode="numeric" aria-label="Card number">
           <div class="card-row">
-            <input type="text" id="cardExpiry" class="name-input" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp" inputmode="numeric">
-            <input type="text" id="cardCvc" class="name-input" placeholder="CVC" maxlength="4" autocomplete="cc-csc" inputmode="numeric">
+            <input type="text" id="cardExpiry" class="name-input" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp" inputmode="numeric" aria-label="Expiration date">
+            <input type="text" id="cardCvc" class="name-input" placeholder="CVC" maxlength="4" autocomplete="cc-csc" inputmode="numeric" aria-label="Security code">
           </div>
-          <input type="text" id="cardZip" class="name-input" placeholder="ZIP code" maxlength="10" autocomplete="postal-code" inputmode="numeric">
+          <input type="text" id="cardZip" class="name-input" placeholder="ZIP code" maxlength="10" autocomplete="postal-code" inputmode="numeric" aria-label="ZIP code">
         </div>
         <button class="btn btn-premium" id="btnSavePayment">SAVE & START PLAYING 🚀</button>
         <button class="btn-skip" id="btnSkipPayment">Skip for now — add later</button>
@@ -637,10 +1050,10 @@
   </div>
 
   <!-- PAYMENT METHOD MODAL (for changing payment after onboarding) -->
-  <div id="paymentModal" class="modal hidden">
+  <div id="paymentModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="payModalTitle">
     <div class="modal-backdrop"></div>
     <div class="modal-content pay-modal">
-      <h2 class="name-title">PAYMENT METHOD</h2>
+      <h2 class="name-title" id="payModalTitle">PAYMENT METHOD</h2>
       <p class="name-sub">Choose how you pay. One-tap checkout.</p>
       <div class="current-method" id="currentMethod"></div>
       <div class="payment-grid" id="paymentGrid">
@@ -673,26 +1086,87 @@
         </button>
       </div>
       <div id="cardFormModal" class="card-form hidden">
-        <input type="text" id="cardNumberModal" class="name-input" placeholder="Card number" maxlength="19" autocomplete="cc-number" inputmode="numeric">
+        <input type="text" id="cardNumberModal" class="name-input" placeholder="Card number" maxlength="19" autocomplete="cc-number" inputmode="numeric" aria-label="Card number">
         <div class="card-row">
-          <input type="text" id="cardExpiryModal" class="name-input" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp" inputmode="numeric">
-          <input type="text" id="cardCvcModal" class="name-input" placeholder="CVC" maxlength="4" autocomplete="cc-csc" inputmode="numeric">
+          <input type="text" id="cardExpiryModal" class="name-input" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp" inputmode="numeric" aria-label="Expiration date">
+          <input type="text" id="cardCvcModal" class="name-input" placeholder="CVC" maxlength="4" autocomplete="cc-csc" inputmode="numeric" aria-label="Security code">
         </div>
-        <input type="text" id="cardZipModal" class="name-input" placeholder="ZIP code" maxlength="10" autocomplete="postal-code" inputmode="numeric">
+        <input type="text" id="cardZipModal" class="name-input" placeholder="ZIP code" maxlength="10" autocomplete="postal-code" inputmode="numeric" aria-label="ZIP code">
       </div>
       <button class="btn btn-premium" id="btnUpdatePayment">UPDATE PAYMENT</button>
       <button class="btn-skip" id="btnClosePayment">Cancel</button>
     </div>
   </div>
 
+  <!-- WITHDRAW MODAL -->
+  <div id="withdrawModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="withdrawTitle">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content withdraw-modal">
+      <h2 class="withdraw-title" id="withdrawTitle">💰 WITHDRAW</h2>
+      <div class="withdraw-balance-display">
+        <span class="withdraw-bal-label">Available</span>
+        <span class="withdraw-bal-amount" id="withdrawAvailable">$0.00</span>
+      </div>
+      <div class="withdraw-pending-info hidden" id="withdrawPendingInfo">
+        <span>⏳ Pending: $<span id="withdrawPendingAmount">0.00</span></span>
+      </div>
+
+      <div id="withdrawForm">
+        <label class="withdraw-label">Amount</label>
+        <div class="withdraw-amount-row">
+          <span class="withdraw-dollar">$</span>
+          <input type="text" id="withdrawAmountInput" class="withdraw-input" placeholder="0.00" inputmode="decimal" maxlength="10" aria-label="Withdrawal amount">
+          <button class="btn-withdraw-max" id="btnWithdrawMax">MAX</button>
+        </div>
+        <div class="withdraw-min-note">Minimum $5.00</div>
+
+        <label class="withdraw-label">Send to</label>
+        <div class="withdraw-method-grid">
+          <button class="withdraw-method-option" data-method="paypal">
+            <span class="wm-icon">P</span>
+            <span class="wm-label">PayPal</span>
+          </button>
+          <button class="withdraw-method-option" data-method="cashapp">
+            <span class="wm-icon">$</span>
+            <span class="wm-label">Cash App</span>
+          </button>
+          <button class="withdraw-method-option" data-method="venmo">
+            <span class="wm-icon">V</span>
+            <span class="wm-label">Venmo</span>
+          </button>
+        </div>
+
+        <div id="withdrawHandleWrap" class="hidden">
+          <label class="withdraw-label" id="withdrawHandleLabel">PayPal email</label>
+          <input type="text" id="withdrawHandleInput" class="withdraw-input" placeholder="you@email.com" maxlength="100" aria-label="Payment handle">
+        </div>
+
+        <button class="btn btn-premium withdraw-submit-btn" id="btnSubmitWithdraw">REQUEST WITHDRAWAL</button>
+      </div>
+
+      <div id="withdrawSuccess" class="hidden">
+        <div class="withdraw-success-icon">✅</div>
+        <div class="withdraw-success-msg" id="withdrawSuccessMsg">Withdrawal requested!</div>
+        <div class="withdraw-success-sub">Processing takes 1–3 business days</div>
+      </div>
+
+      <div class="withdraw-history" id="withdrawHistory"></div>
+
+      <button class="btn-skip" id="btnCloseWithdraw">Close</button>
+    </div>
+  </div>
+
   <!-- DOUBLE DOWN MODAL -->
-  <div id="doubleDownModal" class="modal hidden">
+  <div id="doubleDownModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="ddTitle">
     <div class="modal-backdrop"></div>
     <div class="modal-content dd-modal">
       <div class="dd-icon">🔥</div>
-      <h2 class="dd-title">DOUBLE DOWN!</h2>
+      <h2 class="dd-title" id="ddTitle">DOUBLE DOWN!</h2>
       <div class="dd-text">Add <b id="ddQty">0</b> more entries for <b>HALF PRICE</b></div>
-      <div class="dd-price" id="ddPrice">$0.00</div>
+      <div class="dd-pricing">
+        <span class="dd-orig-price" id="ddOrigPrice">$1.00</span>
+        <span class="dd-price" id="ddPrice">$0.50</span>
+      </div>
       <div class="dd-sub">Same pot. Double the odds. One tap.</div>
       <button class="btn btn-premium dd-btn" id="btnDoubleDown">⚡ DOUBLE MY ENTRIES</button>
       <button class="btn-skip" id="btnDdSkip">No thanks</button>
@@ -715,16 +1189,17 @@
         <span class="checkout-pay-icon" id="checkoutPayIcon">💳</span>
         <span class="checkout-pay-label" id="checkoutPayLabel">Pay $15.00</span>
       </button>
+      <div class="checkout-odds" id="checkoutOdds" style="display:none"></div>
       <div class="checkout-secure">🔒 Secure payment · Instant entry</div>
     </div>
   </div>
 
   <!-- NEAR-MISS MODAL -->
-  <div id="nearMissModal" class="modal hidden">
+  <div id="nearMissModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="nearMissTitle">
     <div class="modal-backdrop"></div>
     <div class="modal-content near-miss-modal">
       <div class="near-miss-icon">😱</div>
-      <h2 class="near-miss-title">SO CLOSE!</h2>
+      <h2 class="near-miss-title" id="nearMissTitle">SO CLOSE!</h2>
       <div class="near-miss-text" id="nearMissText">You were just a few entries away from winning!</div>
       <div class="near-miss-cta">More entries = better odds next time</div>
       <button class="btn btn-premium" id="btnNearMissPlay">
@@ -743,13 +1218,13 @@
   </div>
 
   <!-- JACKPOT WINNER MODAL -->
-  <div id="jackpotWinnerModal" class="modal hidden">
+  <div id="jackpotWinnerModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="jpWinnerTitle">
     <div class="modal-backdrop"></div>
     <div class="modal-content jackpot-winner-modal">
       <div class="confetti-container" id="jpConfetti"></div>
       <div class="jp-winner-glow"></div>
       <div class="jp-winner-icon">💎</div>
-      <h2 class="jp-winner-title">JACKPOT WINNER!</h2>
+      <h2 class="jp-winner-title" id="jpWinnerTitle">JACKPOT WINNER!</h2>
       <div class="jp-winner-name" id="jpWinnerName">Player</div>
       <div class="jp-winner-prize">WON <span id="jpWinnerPrize">$250,000</span></div>
       <div class="jp-winner-tier" id="jpWinnerTier">DIAMOND JACKPOT</div>
@@ -759,22 +1234,22 @@
   </div>
 
   <!-- JACKPOT ANNOUNCE MODAL (full-screen takeover when new jackpot starts) -->
-  <div id="jackpotAnnounceModal" class="modal hidden">
+  <div id="jackpotAnnounceModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="jpAnnounceTitle">
     <div class="modal-backdrop"></div>
     <div class="modal-content jackpot-announce-modal">
       <div class="jp-announce-glow"></div>
       <div class="jp-announce-icon" id="jpAnnounceIcon">💎</div>
-      <h2 class="jp-announce-title">JACKPOT EVENT!</h2>
+      <h2 class="jp-announce-title" id="jpAnnounceTitle">JACKPOT EVENT!</h2>
       <div class="jp-announce-prize" id="jpAnnouncePrize">$250,000</div>
       <div class="jp-announce-tier" id="jpAnnounceTier">DIAMOND JACKPOT</div>
-      <div class="jp-announce-sub">A rare massive jackpot is LIVE! Enter now for your chance to win!</div>
-      <button class="btn btn-premium jp-announce-btn" id="btnJpAnnouncePlay">🔥 ENTER NOW</button>
-      <button class="btn-skip" id="btnJpAnnounceDismiss">I'll enter later</button>
+      <div class="jp-announce-sub">Help build this jackpot! Every dollar goes straight to the prize pot.</div>
+      <button class="btn btn-premium jp-announce-btn" id="btnJpAnnouncePlay">💰 DONATE NOW</button>
+      <button class="btn-skip" id="btnJpAnnounceDismiss">Maybe later</button>
     </div>
   </div>
 
   <!-- MYSTERY BOX REVEAL MODAL -->
-  <div id="mysteryRevealModal" class="modal hidden">
+  <div id="mysteryRevealModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="mysteryRevealRarity">
     <div class="modal-backdrop"></div>
     <div class="modal-content mystery-reveal-modal">
       <div class="confetti-container" id="mysteryConfetti"></div>
@@ -787,12 +1262,12 @@
   </div>
 
   <!-- MEGA MULTIPLIER POPUP -->
-  <div id="megaMultModal" class="modal hidden">
+  <div id="megaMultModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="megaMultTitle">
     <div class="modal-backdrop"></div>
     <div class="modal-content mega-mult-modal">
       <div class="mega-mult-glow"></div>
       <div class="mega-mult-icon">🌟</div>
-      <h2 class="mega-mult-title">MEGA MULTIPLIER!</h2>
+      <h2 class="mega-mult-title" id="megaMultTitle">MEGA MULTIPLIER!</h2>
       <div class="mega-mult-value">5× ENTRIES</div>
       <div class="mega-mult-desc">Every purchase gets <b>5x entries</b> for the next 30 minutes!</div>
       <div class="mega-mult-price">$4.99</div>
@@ -815,7 +1290,326 @@
     </div>
   </div>
 
-  <script src="/js/game.js"></script>
-  <script src="/js/app.js"></script>
+  <!-- ═══ LIVE CHAT — LEFT SIDEBAR ═══ -->
+  <aside id="chatSidebar" class="chat-sidebar">
+    <div class="chat-sidebar-header">
+      <div class="chat-sidebar-header-left">
+        <span class="chat-sidebar-dot"></span>
+        <span class="chat-sidebar-title">LIVE CHAT</span>
+        <span class="chat-sidebar-online" id="chatOnline">0 online</span>
+      </div>
+      <div class="chat-sidebar-header-right">
+        <button class="chat-header-btn" id="chatSoundToggle" aria-label="Toggle sound" title="Mute notifications">🔔</button>
+        <button class="chat-sidebar-collapse" id="chatCollapse" aria-label="Collapse chat">‹</button>
+      </div>
+    </div>
+    <div class="chat-feed" id="chatMessages" role="log" aria-live="polite" aria-label="Chat messages">
+      <div class="chat-empty">No messages yet — say hi! 👋</div>
+    </div>
+    <!-- Scroll-to-bottom FAB -->
+    <button class="chat-scroll-fab hidden" id="chatScrollFab" aria-label="Scroll to latest">↓ New messages</button>
+    <!-- @Mention autocomplete dropdown -->
+    <div class="chat-mention-dropdown hidden" id="chatMentionDropdown"></div>
+    <div class="chat-emoji-picker hidden" id="chatEmojiPicker">
+      <button class="chat-emoji-btn" data-emoji="🔥">🔥</button>
+      <button class="chat-emoji-btn" data-emoji="😂">😂</button>
+      <button class="chat-emoji-btn" data-emoji="❤️">❤️</button>
+      <button class="chat-emoji-btn" data-emoji="👀">👀</button>
+      <button class="chat-emoji-btn" data-emoji="🏆">🏆</button>
+      <button class="chat-emoji-btn" data-emoji="💰">💰</button>
+      <button class="chat-emoji-btn" data-emoji="🎉">🎉</button>
+      <button class="chat-emoji-btn" data-emoji="👑">👑</button>
+      <button class="chat-emoji-btn" data-emoji="💎">💎</button>
+      <button class="chat-emoji-btn" data-emoji="⚡">⚡</button>
+      <button class="chat-emoji-btn" data-emoji="🤑">🤑</button>
+      <button class="chat-emoji-btn" data-emoji="🙌">🙌</button>
+    </div>
+    <!-- GIF Picker -->
+    <div class="chat-gif-picker hidden" id="chatGifPicker">
+      <input type="text" class="chat-gif-search" placeholder="Search GIFs..." maxlength="50" autocomplete="off" aria-label="Search GIFs">
+      <div class="chat-gif-grid" id="chatGifGrid"></div>
+    </div>
+    <div class="chat-typing hidden" id="chatTyping" role="status" aria-live="polite">
+      <span class="chat-typing-dots"><span></span><span></span><span></span></span>
+      <span class="chat-typing-text" id="chatTypingText">Someone is typing...</span>
+    </div>
+    <!-- Slash command hints -->
+    <div class="chat-slash-hints hidden" id="chatSlashHints"></div>
+    <!-- Reply bar -->
+    <div class="chat-reply-bar hidden" id="chatReplyBar">
+      <span class="chat-reply-bar-icon">↩</span>
+      <span class="chat-reply-bar-label">Replying to <strong class="chat-reply-bar-name"></strong></span>
+      <span class="chat-reply-bar-text"></span>
+      <button class="chat-reply-bar-close" id="chatReplyClose" aria-label="Cancel reply">✕</button>
+    </div>
+    <!-- Message input form -->
+    <form class="chat-sidebar-input" id="chatForm" autocomplete="off">
+      <button type="button" class="chat-emoji-toggle" id="chatEmojiToggle" aria-label="Emoji">😀</button>
+      <button type="button" class="chat-gif-toggle" id="chatGifToggle" aria-label="GIF" title="Send a GIF">GIF</button>
+      <input type="text" class="chat-input" id="chatInput" placeholder="Type a message... (/ for commands)" maxlength="200" autocomplete="off" aria-label="Chat message" />
+      <button type="submit" class="chat-send" aria-label="Send">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
+    </form>
+  </aside>
+  <!-- Collapsed chat tab -->
+  <button id="chatExpandBtn" class="chat-expand-btn hidden" aria-label="Open chat">
+    💬 <span class="chat-expand-badge hidden" id="chatBadge">0</span>
+  </button>
+  <!-- Q40: Chat floating bubble (mobile) -->
+  <button id="chatBubble" class="chat-bubble hidden" aria-label="Open chat">
+    💬<span class="chat-bubble-badge hidden" id="chatBubbleBadge">0</span>
+  </button>
+
+  <!-- GIFT ENTRIES MODAL -->
+  <div id="giftModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="giftTitle">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content gift-modal">
+      <h2 class="gift-title" id="giftTitle">🎁 GIFT ENTRIES</h2>
+      <p class="gift-sub">Send entries to another player — they'll love you!</p>
+      <label class="gift-label">Recipient Name</label>
+      <input type="text" id="giftRecipient" class="gift-input" placeholder="Player name" maxlength="20" autocomplete="off" aria-label="Recipient name">
+      <label class="gift-label">Entries to Gift</label>
+      <div class="gift-qty-row">
+        <button class="gift-qty-btn" data-giftqty="1">1</button>
+        <button class="gift-qty-btn active" data-giftqty="3">3</button>
+        <button class="gift-qty-btn" data-giftqty="5">5</button>
+        <button class="gift-qty-btn" data-giftqty="10">10</button>
+      </div>
+      <label class="gift-label">Pot</label>
+      <select id="giftPot" class="gift-select">
+        <option value="gold">Gold Pot</option>
+        <option value="mini">Mini Pot</option>
+        <option value="mega">Mega Pot</option>
+      </select>
+      <div class="gift-total">Total: <b id="giftTotal">$2.85</b></div>
+      <button class="btn btn-premium gift-send-btn" id="btnGiftSend">🎁 SEND GIFT</button>
+      <button class="btn-skip" id="btnGiftClose">Cancel</button>
+    </div>
+  </div>
+
+  <!-- COSMETICS SHOP MODAL -->
+  <div id="cosmeticsModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content cosmetics-modal">
+      <h2 class="cosmetics-title">✨ CHAT COSMETICS SHOP</h2>
+      <p class="cosmetics-sub">Stand out in chat with colors, borders & titles!</p>
+      <div class="cosmetics-tabs">
+        <button class="cosmetics-tab active" data-costype="name_color">Name Colors</button>
+        <button class="cosmetics-tab" data-costype="avatar_border">Borders</button>
+        <button class="cosmetics-tab" data-costype="msg_effect">Effects</button>
+        <button class="cosmetics-tab" data-costype="title">Titles</button>
+      </div>
+      <div class="cosmetics-grid" id="cosmeticsGrid"></div>
+      <button class="btn-skip" id="btnCosmeticsClose">Close</button>
+    </div>
+  </div>
+
+  <!-- PVP DUEL ARENA SECTION -->
+  <section class="duel-arena-section" id="duelArenaSection">
+    <div class="duel-arena-header">
+      <h2 class="duel-arena-title">⚔️ PVP DUEL ARENA</h2>
+      <p class="duel-arena-sub">Challenge players head-to-head. Winner takes the pot!</p>
+      <div class="duel-stats-bar" id="duelStatsBar">
+        <span class="duel-stat">🏆 <strong id="duelTotalDuels">0</strong> Duels Played</span>
+        <span class="duel-stat">💰 $<strong id="duelTotalWagered">0</strong> Wagered</span>
+        <span class="duel-stat">🔴 <strong id="duelActiveCt">0</strong> Live Now</span>
+      </div>
+    </div>
+
+    <!-- YOUR DUEL RECORD -->
+    <div class="duel-record-card" id="duelRecordCard">
+      <div class="duel-record-title">YOUR DUEL RECORD</div>
+      <div class="duel-record-stats">
+        <span class="dr-stat dr-wins">W: <strong id="drWins">0</strong></span>
+        <span class="dr-stat dr-losses">L: <strong id="drLosses">0</strong></span>
+        <span class="dr-stat dr-streak">🔥 <strong id="drStreak">0</strong> Streak</span>
+        <span class="dr-stat dr-best">Best: <strong id="drBest">0</strong></span>
+        <span class="dr-stat dr-earned">💵 $<strong id="drEarned">0</strong></span>
+      </div>
+    </div>
+
+    <!-- CREATE DUEL -->
+    <div class="duel-create-card">
+      <h3 class="duel-create-title">🎲 CREATE A DUEL</h3>
+      <div class="duel-stake-selector" id="duelStakeSelector"></div>
+      <div class="duel-boost-selector" id="duelBoostSelector"></div>
+      <button class="btn-gold duel-create-btn" id="btnCreateDuel">⚔️ CREATE DUEL</button>
+    </div>
+
+    <!-- ACTIVE DUELS LIST -->
+    <div class="duel-list-card">
+      <h3 class="duel-list-title">🔴 OPEN DUELS — JOIN NOW</h3>
+      <div class="duel-list" id="duelList">
+        <div class="duel-empty">No open duels — be the first to create one!</div>
+      </div>
+    </div>
+
+    <!-- LIVE DUEL VIEW (shown during active duel) -->
+    <div class="duel-live-view hidden" id="duelLiveView">
+      <div class="duel-live-header">
+        <span class="duel-live-badge">🔴 LIVE</span>
+        <span class="duel-live-stake" id="duelLiveStake"></span>
+        <span class="duel-live-spectators">👁️ <span id="duelLiveSpectators">0</span></span>
+      </div>
+      <div class="duel-live-players">
+        <div class="duel-player duel-player-left">
+          <div class="duel-player-name" id="duelP1Name">Player 1</div>
+          <div class="duel-player-boosts" id="duelP1Boosts"></div>
+          <div class="duel-player-score" id="duelP1Score">0</div>
+          <div class="duel-player-ready hidden" id="duelP1Ready">✅ READY</div>
+          <canvas class="duel-game-canvas" id="duelCanvas1" width="320" height="400"></canvas>
+        </div>
+        <div class="duel-vs">⚔️<br>VS</div>
+        <div class="duel-player duel-player-right">
+          <div class="duel-player-name" id="duelP2Name">Player 2</div>
+          <div class="duel-player-boosts" id="duelP2Boosts"></div>
+          <div class="duel-player-score" id="duelP2Score">0</div>
+          <div class="duel-player-ready hidden" id="duelP2Ready">✅ READY</div>
+          <canvas class="duel-game-canvas" id="duelCanvas2" width="320" height="400"></canvas>
+        </div>
+      </div>
+      <div class="duel-live-actions">
+        <button class="btn-gold duel-ready-btn hidden" id="btnDuelReady">✅ I'M READY</button>
+        <button class="btn-gold duel-tip-btn hidden" id="btnDuelTipP1">💰 Tip Player 1 ($0.50)</button>
+        <button class="btn-gold duel-tip-btn hidden" id="btnDuelTipP2">💰 Tip Player 2 ($0.50)</button>
+      </div>
+      <div class="duel-countdown hidden" id="duelCountdown">
+        <span class="duel-countdown-text">DUEL STARTS IN</span>
+        <span class="duel-countdown-num" id="duelCountdownNum">3</span>
+      </div>
+    </div>
+
+    <!-- RECENT DUEL RESULTS -->
+    <div class="duel-history-card">
+      <h3 class="duel-history-title">📜 RECENT RESULTS</h3>
+      <div class="duel-history" id="duelHistory">
+        <div class="duel-empty">No results yet</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DUEL RESULT MODAL -->
+  <div id="duelResultModal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content duel-result-modal">
+      <div class="duel-result-icon" id="duelResultIcon">🏆</div>
+      <h2 class="duel-result-title" id="duelResultTitle">VICTORY!</h2>
+      <div class="duel-result-scores">
+        <div class="duel-result-p1">
+          <span class="drp-name" id="drpName1">Player 1</span>
+          <span class="drp-score" id="drpScore1">0</span>
+        </div>
+        <div class="duel-result-vs">VS</div>
+        <div class="duel-result-p2">
+          <span class="drp-name" id="drpName2">Player 2</span>
+          <span class="drp-score" id="drpScore2">0</span>
+        </div>
+      </div>
+      <div class="duel-result-prize" id="duelResultPrize">+$0.00</div>
+      <button class="btn-gold" id="btnDuelRematch">🔄 REMATCH</button>
+      <button class="btn-skip" id="btnDuelResultClose">Close</button>
+    </div>
+  </div>
+
+  <!-- GOLDPOT LIVE — STREAMING SECTION -->
+  <section class="stream-section" id="streamSection">
+    <div class="stream-header">
+      <h2 class="stream-title">📺 GOLDPOT LIVE</h2>
+      <p class="stream-sub">Watch miners dig in real-time. Send Super Chats & Gifts!</p>
+      <div class="stream-stats-bar" id="streamStatsBar">
+        <span class="stream-stat">🔴 <strong id="streamLiveCt">0</strong> Live Now</span>
+        <span class="stream-stat">💬 <strong id="streamTotalSC">0</strong> Super Chats</span>
+        <span class="stream-stat">🎁 <strong id="streamTotalGifts">0</strong> Gifts Sent</span>
+        <span class="stream-stat">💰 $<strong id="streamTotalRevenue">0</strong> Earned</span>
+      </div>
+    </div>
+
+    <!-- GO LIVE BUTTON -->
+    <div class="stream-go-live-card">
+      <h3 class="stream-go-live-title">🎬 GO LIVE</h3>
+      <p class="stream-go-live-desc">Stream your gameplay and earn 70% of all tips, gifts & subs!</p>
+      <input type="text" class="stream-title-input" id="streamTitleInput" placeholder="Enter your stream title..." maxlength="60" aria-label="Stream title">
+      <button class="btn-gold stream-go-live-btn" id="btnGoLive">🔴 START STREAMING</button>
+      <button class="btn-gold stream-end-btn hidden" id="btnEndStream">⏹️ END STREAM</button>
+    </div>
+
+    <!-- LIVE STREAMS LIST -->
+    <div class="stream-list-card">
+      <h3 class="stream-list-title">📺 LIVE STREAMS</h3>
+      <div class="stream-list" id="streamList">
+        <div class="stream-empty">No streams live yet — be the first to go live!</div>
+      </div>
+    </div>
+
+    <!-- STREAM VIEWER (shown when watching) -->
+    <div class="stream-viewer hidden" id="streamViewer">
+      <div class="stream-viewer-header">
+        <span class="stream-live-badge">🔴 LIVE</span>
+        <span class="stream-viewer-title" id="streamViewerTitle">Stream</span>
+        <span class="stream-viewer-count">👁️ <span id="streamViewerCount">0</span></span>
+        <span class="stream-uptime" id="streamUptime">⏱ 0:00</span>
+        <button class="stream-leave-btn" id="btnLeaveStream">✕</button>
+      </div>
+      <div class="stream-viewer-body">
+        <div class="stream-canvas-wrap">
+          <canvas class="stream-canvas" id="streamCanvas" width="360" height="450"></canvas>
+          <div class="stream-score-overlay" id="streamScoreOverlay">Score: 0</div>
+          <div class="stream-gift-overlay" id="streamGiftOverlay"></div>
+        </div>
+        <div class="stream-sidebar">
+          <!-- Free Chat -->
+          <div class="stream-chat-section">
+            <div class="stream-chat-title">💬 CHAT</div>
+            <div class="stream-chat-list" id="streamChatList"></div>
+            <div class="stream-chat-input-wrap">
+              <input type="text" class="stream-chat-input" id="streamChatInput" placeholder="Say something..." maxlength="200" aria-label="Chat message">
+              <button class="stream-chat-send" id="btnStreamChatSend">➤</button>
+            </div>
+          </div>
+          <!-- Super Chat Feed -->
+          <div class="stream-sc-feed" id="streamSCFeed">
+            <div class="stream-sc-title">⭐ SUPER CHATS</div>
+            <div class="stream-sc-list" id="streamSCList"></div>
+          </div>
+          <!-- Super Chat Purchase -->
+          <div class="stream-sc-buy">
+            <input type="text" class="stream-sc-input" id="streamSCInput" placeholder="Type your Super Chat..." maxlength="200" aria-label="Super Chat message">
+            <div class="stream-sc-tiers" id="streamSCTiers"></div>
+          </div>
+          <!-- Gift Picker -->
+          <div class="stream-gift-section">
+            <div class="stream-gift-title">🎁 SEND A GIFT</div>
+            <div class="stream-gift-grid" id="streamGiftGrid"></div>
+          </div>
+          <!-- Subscribe -->
+          <div class="stream-sub-section">
+            <button class="btn-gold stream-sub-btn" id="btnStreamSub">⭐ SUBSCRIBE — $1.99/mo</button>
+          </div>
+          <!-- Hype Train -->
+          <div class="stream-hype-section" id="streamHypeSection">
+            <div class="stream-hype-title">🔥 HYPE TRAIN — Level <span id="streamHypeLevel">0</span></div>
+            <div class="stream-hype-bar">
+              <div class="stream-hype-fill" id="streamHypeFill" style="width: 0%"></div>
+            </div>
+            <div class="stream-hype-reward" id="streamHypeReward"></div>
+          </div>
+          <!-- Top Gifters -->
+          <div class="stream-top-gifters">
+            <div class="stream-top-title">👑 TOP GIFTERS</div>
+            <div class="stream-top-list" id="streamTopGifters"></div>
+          </div>
+        </div>
+      </div>
+      <div class="stream-streamer-bar hidden" id="streamStreamerBar">
+        <span class="stream-earnings">💰 Earned: $<span id="streamMyEarnings">0.00</span></span>
+        <span class="stream-viewers-count">👁️ <span id="streamMyViewers">0</span> viewers</span>
+        <span class="stream-subs-count">⭐ <span id="streamMySubs">0</span> subs</span>
+      </div>
+    </div>
+  </section>
+
+  <script src="/js/game.js" defer></script>
+  <script src="/js/app.js" defer></script>
 </body>
 </html>

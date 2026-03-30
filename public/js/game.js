@@ -188,6 +188,7 @@ class GoldPotGame {
     this.lives = 3;
     this.hasShield = false;
     this.combo = 0;
+    this.maxCombo = 0;
     this.totalDigs = 0;
     this.layers = [];
     this.currentIndex = 0;
@@ -196,6 +197,8 @@ class GoldPotGame {
     this.digAnim = null;
     this.particles = [];
     this.floatTexts = [];
+    this.rings = [];
+    this.ambientParticles = [];
     this.shakeI = 0;
     this.shakeX = 0;
     this.shakeY = 0;
@@ -275,14 +278,23 @@ class GoldPotGame {
   }
 
   _calcScore() {
-    // Score = banked gold → maps to bonus entries via the same thresholds
-    // We return a score that app.js understands (like the old 0-50+ coin tap score)
-    // Mapping: 50 gold banked = score 15, 150 banked = score 30, 300 banked = score 50
+    // Score = banked gold + depth bonus → maps to bonus entries
+    // Graduated: every 100 gold beyond 500 adds +1 more entry-equivalent
+    // Depth bonus: 300m = +1, 500m = +2, 700m = +3
     const g = this.banked;
-    if (g >= 300) return 50 + Math.floor((g - 300) / 50);
-    if (g >= 150) return 30 + Math.floor((g - 150) / 10);
-    if (g >= 50) return 15 + Math.floor((g - 50) / 10);
-    return Math.floor(g / 4);
+    const d = this.depth;
+    // Base score from gold
+    let score;
+    if (g >= 500) score = 50 + Math.floor((g - 500) / 100) * 5;
+    else if (g >= 300) score = 35 + Math.floor((g - 300) / 50);
+    else if (g >= 150) score = 20 + Math.floor((g - 150) / 15);
+    else if (g >= 50) score = 10 + Math.floor((g - 50) / 10);
+    else score = Math.max(1, Math.floor(g / 4)); // min 1 if any gold
+    // Depth bonus
+    if (d >= 700) score += 15;
+    else if (d >= 500) score += 10;
+    else if (d >= 300) score += 5;
+    return score;
   }
 
   getMineMap() {
@@ -332,7 +344,21 @@ class GoldPotGame {
       if (prev !== curr) {
         this.sound.play('biome');
         this._flash(curr.accent);
+        this.shakeI = 15;
+        // Celebration ring burst
+        const bsy = this._layerScreenY(layer.index) + LAYER_H / 2;
+        this._spawnRing(this.w / 2, bsy, curr.accent);
+        this._spawnParticles(this.w / 2, bsy, curr.accent, 30);
+        this._spawnParticles(this.w / 2, bsy, curr.textCol, 15);
+        this._addFloat(this.w / 2, bsy - 25, '⬇️ ' + curr.name, curr.textCol, 18);
       }
+    }
+
+    // Depth milestones
+    if (layer.depth > 0 && layer.depth % 100 === 0) {
+      const msy = this._layerScreenY(layer.index) + LAYER_H / 2;
+      this._spawnRing(this.w / 2, msy, '#f0c040');
+      this._addFloat(this.w / 2, msy - 40, `📍 ${layer.depth}m DEEP!`, '#f0c040', 16);
     }
 
     this._emitTick();
@@ -346,49 +372,69 @@ class GoldPotGame {
     this.mineMap.push(layer.type);
 
     if (layer.type === 'dynamite') {
+      if (this.combo >= 3) this._addFloat(cx, sy - 30, '💔 COMBO BREAK!', '#ff6060', 16);
       this.combo = 0;
       if (this.hasShield) {
         this.hasShield = false;
         this.sound.play('shield');
         this._flash('#60ffe0');
-        this._spawnParticles(cx, sy, '#60ffe0', 18);
-        this._addFloat(cx, sy - 10, '🛡️ BLOCKED!', '#60ffe0', 20);
+        this._spawnRing(cx, sy, '#60ffe0');
+        this._spawnParticles(cx, sy, '#60ffe0', 24);
+        this._addFloat(cx, sy - 10, '🛡️ BLOCKED!', '#60ffe0', 22);
       } else {
         this.sound.play('dynamite');
         this.lives--;
         const lost = this.gold;
         this.gold = 0;
-        this.shakeI = 20;
+        this.shakeI = 28;
         this._flash('#ff3030');
-        this._spawnParticles(cx, sy, '#ff3030', 30);
-        this._spawnParticles(cx, sy, '#ff6020', 15);
-        if (lost > 0) this._addFloat(cx, sy - 10, `−${lost} GOLD LOST!`, '#ff4040', 20);
-        else this._addFloat(cx, sy - 10, '💥 BOOM!', '#ff4040', 22);
+        this._spawnRing(cx, sy, '#ff3030');
+        this._spawnParticles(cx, sy, '#ff3030', 35);
+        this._spawnParticles(cx, sy, '#ff6020', 20);
+        if (lost > 0) this._addFloat(cx, sy - 10, `−${lost} GOLD LOST!`, '#ff4040', 22);
+        else this._addFloat(cx, sy - 10, '💥 BOOM!', '#ff4040', 24);
         if (this.lives <= 0) {
           setTimeout(() => this.endAndScore(), 700);
         }
       }
     } else if (layer.type === 'rock') {
+      if (this.combo >= 3) this._addFloat(cx, sy - 30, '💔 COMBO BREAK!', '#ff6060', 14);
       this.combo = 0;
-      this._spawnParticles(cx, sy, '#777', 4);
+      this._spawnParticles(cx, sy, '#777', 6);
     } else if (layer.type === 'star') {
       this.combo++;
+      if (this.combo > this.maxCombo) this.maxCombo = this.combo;
       this.gold += layer.value;
       this.hasShield = true;
       this.sound.play('star');
       this._flash('#fff8a0');
-      this._spawnParticles(cx, sy, '#fff8a0', 35);
-      this._addFloat(cx, sy - 10, `⭐ +${layer.value} +🛡️`, '#fff8a0', 22);
+      this.shakeI = 12;
+      this._spawnRing(cx, sy, '#fff8a0');
+      this._spawnParticles(cx, sy, '#fff8a0', 40);
+      this._spawnParticles(cx, sy, '#f0c040', 20);
+      this._addFloat(cx, sy - 10, `⭐ +${layer.value} +🛡️`, '#fff8a0', 24);
       if (this.onScore) this.onScore(this.gold + this.banked);
       if (this.onCombo && this.combo >= 3) this.onCombo(this.combo);
     } else {
       this.combo++;
-      this.gold += layer.value;
+      if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+      // Combo multiplier: 3-4 = 1.5x, 5-7 = 2x, 8+ = 3x
+      const comboMult = this.combo >= 8 ? 3 : this.combo >= 5 ? 2 : this.combo >= 3 ? 1.5 : 1;
+      const finalValue = Math.round(layer.value * comboMult);
+      this.gold += finalValue;
       this.sound.play(layer.type);
-      const pCount = layer.type === 'diamond' ? 24 : layer.type === 'gem' ? 16 : 8;
+      // Scale shake by value
+      this.shakeI = Math.min(18, 3 + finalValue / 8);
+      const pCount = layer.type === 'diamond' ? 30 : layer.type === 'gem' ? 22 : 12;
       this._spawnParticles(cx, sy, vis.color, pCount);
+      // Combo milestone: expanding ring + extra burst
+      if (this.combo === 3 || this.combo === 5 || this.combo === 8 || this.combo === 12) {
+        this._spawnRing(cx, sy, vis.color);
+        this._spawnParticles(cx, sy, '#f0c040', 15);
+        this._addFloat(cx, sy - 35, this.combo >= 8 ? `🔥 ${this.combo}x STREAK!` : `⚡ ${this.combo}x COMBO!`, '#f0c040', 18);
+      }
       const comboStr = this.combo >= 8 ? ` 💥x${this.combo}` : this.combo >= 5 ? ` 🔥x${this.combo}` : this.combo >= 3 ? ` x${this.combo}` : '';
-      this._addFloat(cx, sy - 10, `+${layer.value}${comboStr}`, vis.color, layer.value >= 50 ? 24 : 18);
+      this._addFloat(cx, sy - 10, `+${finalValue}${comboStr}`, vis.color, finalValue >= 50 ? 26 : 20);
       if (this.onScore) this.onScore(this.gold + this.banked);
       if (this.onCombo && this.combo >= 3) this.onCombo(this.combo);
     }
@@ -442,15 +488,36 @@ class GoldPotGame {
 
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
-      p.x += p.vx * dt * 60; p.y += p.vy * dt * 60; p.vy += 2.5 * dt * 60;
+      p.vx *= (1 - 1.5 * dt); // air resistance
+      p.x += p.vx * dt * 60; p.y += p.vy * dt * 60; p.vy += 2.0 * dt * 60;
+      if (p.rotation !== undefined) p.rotation += p.spin * dt;
       p.life -= dt;
       if (p.life <= 0) this.particles.splice(i, 1);
     }
 
+    for (let i = this.rings.length - 1; i >= 0; i--) {
+      const r = this.rings[i];
+      r.radius += (r.maxRadius - r.radius) * dt * 6;
+      r.life -= dt;
+      if (r.life <= 0) this.rings.splice(i, 1);
+    }
+
     for (let i = this.floatTexts.length - 1; i >= 0; i--) {
       const f = this.floatTexts[i];
-      f.y -= dt * 45; f.life -= dt;
+      const prog = 1 - f.life / f.maxLife;
+      f.y -= dt * 45 * (1 - prog * 0.6); // decelerate as it rises
+      f.life -= dt;
       if (f.life <= 0) this.floatTexts.splice(i, 1);
+    }
+
+    // Ambient floating particles
+    if (Math.random() < dt * 2) this._spawnAmbientParticles();
+    for (let i = this.ambientParticles.length - 1; i >= 0; i--) {
+      const a = this.ambientParticles[i];
+      a.x += a.vx * dt * 60; a.y += a.vy * dt * 60;
+      a.x += Math.sin(performance.now() / 1000 + i) * 0.15;
+      a.life -= dt;
+      if (a.life <= 0) this.ambientParticles.splice(i, 1);
     }
   }
 
@@ -463,17 +530,53 @@ class GoldPotGame {
     ctx.translate(this.shakeX, this.shakeY);
 
     const biome = getBiome(this.depth);
-    ctx.fillStyle = biome.bg2;
+    // Gradient background instead of flat
+    const bgGrd = ctx.createLinearGradient(0, 0, 0, h);
+    bgGrd.addColorStop(0, biome.bg1);
+    bgGrd.addColorStop(1, biome.bg2);
+    ctx.fillStyle = bgGrd;
+    ctx.fillRect(-20, -20, w + 40, h + 40);
+
+    // Subtle vignette overlay
+    const vig = ctx.createRadialGradient(w / 2, h / 2, w * 0.3, w / 2, h / 2, w * 0.9);
+    vig.addColorStop(0, 'transparent');
+    vig.addColorStop(1, 'rgba(0,0,0,0.35)');
+    ctx.fillStyle = vig;
     ctx.fillRect(-20, -20, w + 40, h + 40);
 
     this._renderLayers();
     this._renderParticles();
     this._renderFloatTexts();
 
+    // Flash overlay with radial burst
     if (this.flashAlpha > 0) {
-      ctx.globalAlpha = this.flashAlpha * 0.25;
-      ctx.fillStyle = this.flashColor;
+      const fGrd = ctx.createRadialGradient(w / 2, h * 0.4, 0, w / 2, h * 0.4, w);
+      fGrd.addColorStop(0, this.flashColor);
+      fGrd.addColorStop(1, 'transparent');
+      ctx.globalAlpha = this.flashAlpha * 0.3;
+      ctx.fillStyle = fGrd;
       ctx.fillRect(0, 0, w, h);
+      ctx.globalAlpha = 1;
+    }
+
+    // Combo meter bar at bottom of canvas
+    if (this.combo >= 2 && this.running) {
+      const meterW = Math.min(1, this.combo / 12) * (w - 40);
+      const meterColor = this.combo >= 8 ? '#ff4040' : this.combo >= 5 ? '#ff8040' : '#f0c040';
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fillRect(20, h - 14, w - 40, 6);
+      const mGrd = ctx.createLinearGradient(20, 0, 20 + meterW, 0);
+      mGrd.addColorStop(0, meterColor);
+      mGrd.addColorStop(1, meterColor + '80');
+      ctx.fillStyle = mGrd;
+      ctx.fillRect(20, h - 14, meterW, 6);
+      // Combo count label
+      ctx.globalAlpha = 0.8;
+      ctx.font = '700 9px Inter, sans-serif';
+      ctx.fillStyle = meterColor;
+      ctx.textAlign = 'right';
+      ctx.fillText(`${this.combo}x`, w - 22, h - 8);
       ctx.globalAlpha = 1;
     }
 
@@ -539,7 +642,7 @@ class GoldPotGame {
       }
 
       if (index > this.currentIndex) {
-        const fog = Math.min(0.6, (index - this.currentIndex) * 0.1);
+        const fog = Math.min(0.75, (index - this.currentIndex) * 0.12);
         ctx.fillStyle = `rgba(0,0,0,${fog})`;
         ctx.fillRect(0, sy, w, LAYER_H);
       }
@@ -549,11 +652,20 @@ class GoldPotGame {
       ctx.fillRect(0, sy, w, LAYER_H);
 
       if (vis.glow && layer.type !== 'rock') {
-        const grd = ctx.createRadialGradient(w / 2, sy + LAYER_H / 2, 0, w / 2, sy + LAYER_H / 2, LAYER_H * 1.8);
-        grd.addColorStop(0, vis.color + '22');
+        const grd = ctx.createRadialGradient(w / 2, sy + LAYER_H / 2, 0, w / 2, sy + LAYER_H / 2, LAYER_H * 2.2);
+        grd.addColorStop(0, vis.color + '44');
+        grd.addColorStop(0.4, vis.color + '18');
         grd.addColorStop(1, 'transparent');
         ctx.fillStyle = grd;
         ctx.fillRect(0, sy, w, LAYER_H);
+        // Pulsing glow for high-value items
+        if (layer.value >= 20) {
+          const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 400);
+          ctx.globalAlpha = pulse * 0.12;
+          ctx.fillStyle = vis.color;
+          ctx.fillRect(0, sy, w, LAYER_H);
+          ctx.globalAlpha = 1;
+        }
       }
 
       if (layer.type === 'dynamite') {
@@ -633,11 +745,48 @@ class GoldPotGame {
 
   _renderParticles() {
     const ctx = this.ctx;
+    // Ambient particles (behind everything)
+    for (const a of this.ambientParticles) {
+      const la = Math.max(0, Math.min(1, a.life / a.maxLife));
+      ctx.globalAlpha = a.alpha * la;
+      ctx.fillStyle = a.color;
+      const camY = this.scrollCurrent - this.h * CAMERA_RATIO;
+      ctx.beginPath(); ctx.arc(a.x, a.y - camY, a.size, 0, Math.PI * 2); ctx.fill();
+    }
+    // Expanding rings
+    for (const r of this.rings) {
+      const a = Math.max(0, r.life / r.maxLife);
+      ctx.globalAlpha = a * 0.4;
+      ctx.strokeStyle = r.color;
+      ctx.lineWidth = 2 * a;
+      ctx.beginPath(); ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2); ctx.stroke();
+    }
+    // Main particles
     for (const p of this.particles) {
       const a = Math.max(0, p.life / p.maxLife);
       ctx.globalAlpha = a;
       ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (0.3 + a * 0.7), 0, Math.PI * 2); ctx.fill();
+      const sz = p.size * (0.3 + a * 0.7);
+      if (p.shape === 'star') {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation || 0);
+        ctx.beginPath();
+        for (let j = 0; j < 5; j++) {
+          const ang = (j * 4 * Math.PI) / 5 - Math.PI / 2;
+          const method = j === 0 ? 'moveTo' : 'lineTo';
+          ctx[method](Math.cos(ang) * sz, Math.sin(ang) * sz);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      } else {
+        ctx.beginPath(); ctx.arc(p.x, p.y, sz, 0, Math.PI * 2); ctx.fill();
+      }
+      // Glow trail
+      if (a > 0.3) {
+        ctx.globalAlpha = a * 0.15;
+        ctx.beginPath(); ctx.arc(p.x, p.y, sz * 2.5, 0, Math.PI * 2); ctx.fill();
+      }
     }
     ctx.globalAlpha = 1;
   }
@@ -646,13 +795,23 @@ class GoldPotGame {
     const ctx = this.ctx;
     for (const f of this.floatTexts) {
       const a = Math.max(0, Math.min(1, f.life / f.maxLife));
+      const prog = 1 - f.life / f.maxLife;
+      // Scale: pop in then settle
+      const scale = prog < 0.15 ? 0.5 + (prog / 0.15) * 0.7 : 1.2 - prog * 0.25;
       ctx.globalAlpha = a;
+      ctx.save();
+      ctx.translate(f.x, f.y);
+      ctx.scale(scale, scale);
       ctx.font = `800 ${f.size}px Inter, sans-serif`;
       ctx.fillStyle = f.color;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 6;
-      ctx.fillText(f.text, f.x, f.y);
+      ctx.shadowColor = f.color + '80';
+      ctx.shadowBlur = 12;
+      ctx.fillText(f.text, 0, 0);
+      ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 4;
+      ctx.fillText(f.text, 0, 0);
       ctx.shadowBlur = 0;
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
   }
@@ -665,16 +824,38 @@ class GoldPotGame {
 
   _spawnParticles(x, y, color, count) {
     for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+      const speed = 2 + Math.random() * 5;
       this.particles.push({
         x, y,
-        vx: (Math.random() - 0.5) * 7,
-        vy: (Math.random() - 1) * 5,
-        life: 0.3 + Math.random() * 0.5,
-        maxLife: 0.7,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        life: 0.4 + Math.random() * 0.6,
+        maxLife: 0.9,
         size: 2 + Math.random() * 4,
         color,
+        shape: Math.random() > 0.5 ? 'star' : 'circle',
+        rotation: Math.random() * Math.PI * 2,
+        spin: (Math.random() - 0.5) * 8,
       });
     }
+  }
+
+  _spawnRing(x, y, color) {
+    this.rings.push({ x, y, color, radius: 5, maxRadius: 120, life: 0.6, maxLife: 0.6 });
+  }
+
+  _spawnAmbientParticles() {
+    if (this.ambientParticles.length > 20) return;
+    const x = Math.random() * this.w;
+    const camY = this.scrollCurrent - this.h * CAMERA_RATIO;
+    const y = camY + Math.random() * this.h;
+    const biome = getBiome(this.depth);
+    this.ambientParticles.push({
+      x, y, vx: (Math.random() - 0.5) * 0.3, vy: -0.2 - Math.random() * 0.3,
+      life: 3 + Math.random() * 3, maxLife: 5, size: 1 + Math.random() * 2,
+      color: biome.accent, alpha: 0.15 + Math.random() * 0.15,
+    });
   }
 
   _addFloat(x, y, text, color, size) {

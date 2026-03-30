@@ -7,10 +7,10 @@
 'use strict';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-const LAYER_H = 54;
+const LAYER_H = 48;
 const DEPTH_PER_DIG = 3;
-const CAMERA_RATIO = 0.35;
-const DIG_ANIM_MS = 350;
+const CAMERA_RATIO = 0.32;
+const DIG_ANIM_MS = 300;
 
 // ─── Biomes ─────────────────────────────────────────────────────────────────
 const BIOMES = [
@@ -75,7 +75,7 @@ function generateTile(depth) {
 }
 
 // ─── Sound Engine ───────────────────────────────────────────────────────────
-class SoundEngine {
+class MineSoundEngine {
   constructor() {
     this.ctx = null;
     this.muted = false;
@@ -221,7 +221,7 @@ class DeepGoldGame {
   constructor() {
     this.canvas = document.getElementById('mineCanvas');
     this.ctx = this.canvas.getContext('2d');
-    this.sound = new SoundEngine();
+    this.sound = new MineSoundEngine();
     this.dpr = window.devicePixelRatio || 1;
 
     // Game state
@@ -244,6 +244,8 @@ class DeepGoldGame {
     this.digAnim = null;
     this.particles = [];
     this.floatTexts = [];
+    this.rings = [];
+    this.ambientParticles = [];
     this.shakeI = 0;
     this.shakeX = 0;
     this.shakeY = 0;
@@ -304,6 +306,10 @@ class DeepGoldGame {
     document.getElementById('btnDig').onclick = () => this.dig();
     document.getElementById('btnShare').onclick = () => this.share();
     document.getElementById('muteToggle').onclick = () => this.toggleMute();
+    const btnContinue = document.getElementById('btnContinue');
+    if (btnContinue) {
+      btnContinue.onclick = () => this.continueGame();
+    }
   }
 
   // ─── Game Flow ──────────────────────────────────────────────────────
@@ -326,9 +332,12 @@ class DeepGoldGame {
     this.digAnim = null;
     this.particles = [];
     this.floatTexts = [];
+    this.rings = [];
+    this.ambientParticles = [];
     this.shakeI = 0;
     this.flashAlpha = 0;
     this.mineMap = [];
+    this.continuesUsed = 0;
 
     // Generate initial layers
     for (let i = 0; i < 40; i++) {
@@ -387,7 +396,20 @@ class DeepGoldGame {
       if (prev !== curr) {
         this.sound.play('biome');
         this._flash(curr.accent);
+        this.shakeI = 15;
+        const bsy = this._layerY(layer.index) + LAYER_H / 2;
+        this._spawnRing(this.w / 2, bsy, curr.accent);
+        this._spawnParticles(this.w / 2, bsy, curr.accent, 35);
+        this._spawnParticles(this.w / 2, bsy, curr.textCol, 18);
+        this._addFloat(this.w / 2, bsy - 25, '⬇️ ' + curr.name, curr.textCol, 20);
       }
+    }
+
+    // Depth milestones
+    if (layer.depth > 0 && layer.depth % 100 === 0) {
+      const msy = this._layerY(layer.index) + LAYER_H / 2;
+      this._spawnRing(this.w / 2, msy, '#f0c040');
+      this._addFloat(this.w / 2, msy - 40, `📍 ${layer.depth}m DEEP!`, '#f0c040', 18);
     }
 
     this._updateHUD();
@@ -401,6 +423,7 @@ class DeepGoldGame {
     this.mineMap.push(layer.type);
 
     if (layer.type === 'dynamite') {
+      if (this.combo >= 3) this._addFloat(cx, sy - 30, '💔 COMBO BREAK!', '#ff6060', 16);
       this.combo = 0;
       if (this.hasShield) {
         // Shield absorbs
@@ -408,21 +431,23 @@ class DeepGoldGame {
         document.getElementById('shieldBadge').classList.add('hidden');
         this.sound.play('shield');
         this._flash('#60ffe0');
-        this._spawnParticles(cx, sy, '#60ffe0', 20);
+        this._spawnRing(cx, sy, '#60ffe0');
+        this._spawnParticles(cx, sy, '#60ffe0', 28);
         this._addFloat(cx, sy - 10, '🛡️ BLOCKED!', '#60ffe0', 24);
       } else {
         this.sound.play('dynamite');
         this.lives--;
         const lost = this.gold;
         this.gold = 0;
-        this.shakeI = 22;
+        this.shakeI = 28;
         this._flash('#ff3030');
-        this._spawnParticles(cx, sy, '#ff3030', 35);
-        this._spawnParticles(cx, sy, '#ff6020', 20);
+        this._spawnRing(cx, sy, '#ff3030');
+        this._spawnParticles(cx, sy, '#ff3030', 40);
+        this._spawnParticles(cx, sy, '#ff6020', 22);
         if (lost > 0) {
-          this._addFloat(cx, sy - 10, `−${lost} GOLD LOST!`, '#ff4040', 22);
+          this._addFloat(cx, sy - 10, `−${lost} GOLD LOST!`, '#ff4040', 24);
         } else {
-          this._addFloat(cx, sy - 10, '💥 BOOM!', '#ff4040', 24);
+          this._addFloat(cx, sy - 10, '💥 BOOM!', '#ff4040', 26);
         }
         // Update danger vignette
         if (this.lives <= 1 && this.lives > 0) {
@@ -433,8 +458,9 @@ class DeepGoldGame {
         }
       }
     } else if (layer.type === 'rock') {
+      if (this.combo >= 3) this._addFloat(cx, sy - 30, '💔 COMBO BREAK!', '#ff6060', 14);
       this.combo = 0;
-      this._spawnParticles(cx, sy, '#777', 4);
+      this._spawnParticles(cx, sy, '#777', 6);
     } else if (layer.type === 'star') {
       this.combo++;
       this.gold += layer.value;
@@ -442,18 +468,30 @@ class DeepGoldGame {
       document.getElementById('shieldBadge').classList.remove('hidden');
       this.sound.play('star');
       this._flash('#fff8a0');
-      this._spawnParticles(cx, sy, '#fff8a0', 45);
-      this._spawnParticles(cx, sy, '#f0c040', 20);
-      this._addFloat(cx, sy - 10, `⭐ +${layer.value} +🛡️`, '#fff8a0', 24);
+      this.shakeI = 12;
+      this._spawnRing(cx, sy, '#fff8a0');
+      this._spawnParticles(cx, sy, '#fff8a0', 50);
+      this._spawnParticles(cx, sy, '#f0c040', 25);
+      this._addFloat(cx, sy - 10, `⭐ +${layer.value} +🛡️`, '#fff8a0', 26);
     } else {
       // Gold / gem / diamond
       this.combo++;
-      this.gold += layer.value;
+      // Combo multiplier: 3-4 = 1.5x, 5-7 = 2x, 8+ = 3x
+      const comboMult = this.combo >= 8 ? 3 : this.combo >= 5 ? 2 : this.combo >= 3 ? 1.5 : 1;
+      const finalValue = Math.round(layer.value * comboMult);
+      this.gold += finalValue;
       this.sound.play(layer.type);
-      const pCount = layer.type === 'diamond' ? 28 : layer.type === 'gem' ? 20 : 10;
+      this.shakeI = Math.min(18, 3 + finalValue / 8);
+      const pCount = layer.type === 'diamond' ? 35 : layer.type === 'gem' ? 24 : 14;
       this._spawnParticles(cx, sy, vis.color, pCount);
+      // Combo milestone effects
+      if (this.combo === 3 || this.combo === 5 || this.combo === 8 || this.combo === 12) {
+        this._spawnRing(cx, sy, vis.color);
+        this._spawnParticles(cx, sy, '#f0c040', 18);
+        this._addFloat(cx, sy - 35, this.combo >= 8 ? `🔥 ${this.combo}x STREAK!` : `⚡ ${this.combo}x COMBO!`, '#f0c040', 20);
+      }
       const comboStr = this.combo >= 8 ? ` 💥x${this.combo}` : this.combo >= 5 ? ` 🔥x${this.combo}` : this.combo >= 3 ? ` x${this.combo}` : '';
-      this._addFloat(cx, sy - 10, `+${layer.value}${comboStr}`, vis.color, layer.value >= 50 ? 26 : 20);
+      this._addFloat(cx, sy - 10, `+${finalValue}${comboStr}`, vis.color, finalValue >= 50 ? 28 : 22);
     }
 
     this._updateHUD();
@@ -524,15 +562,51 @@ class DeepGoldGame {
 
     this._buildMineMap();
     this._showScreen('gameover');
+
+    // Show continue option only if player had banked gold (worth saving)
+    const continueEl = document.getElementById('goContinue');
+    if (continueEl) {
+      // Max 2 continues per game, and must have banked gold worth saving
+      continueEl.style.display = (this.continuesUsed < 2 && totalGold > 0) ? 'block' : 'none';
+      // Escalate price each continue ($0.99 → $1.99)
+      const price = this.continuesUsed === 0 ? '0.99' : '1.99';
+      const btnC = document.getElementById('btnContinue');
+      if (btnC) btnC.textContent = `⛏️ CONTINUE — $${price}`;
+    }
+  }
+
+  continueGame() {
+    // In a real integration, this would trigger a Stripe checkout.
+    // For now, simulate the purchase and resume game.
+    this.continuesUsed = (this.continuesUsed || 0) + 1;
+    this.phase = 'playing';
+    this.lives = 1; // Restore 1 life
+    // Keep banked gold — that's the whole point
+    this.gold = 0;
+    this.sound.play('cashout');
+    this._updateHUD();
+    this._showScreen('game');
+
+    // Spawn a celebratory "CONTINUED" effect
+    const cx = this.w / 2;
+    const cy = this.h * 0.4;
+    this._addFloat(cx, cy, '⛏️ CONTINUE!', '#f0c040', 28);
+    this._spawnParticles(cx, cy, '#f0c040', 20);
+    this._flash('#f0c040');
   }
 
   _calcEntries(gold, depth) {
+    // Graduated: every 200 gold past 500 adds +1 more entry
+    // Depth bonus: 300m +1, 500m +2, 700m +3
+    // Min 1 entry for any completed game
     let e = 0;
-    if (gold >= 500) e = 5;
+    if (gold >= 500) e = 5 + Math.floor((gold - 500) / 200);
     else if (gold >= 300) e = 3;
     else if (gold >= 150) e = 2;
     else if (gold >= 50) e = 1;
-    if (depth >= 500) e += 2;
+    else if (gold > 0) e = 1; // min 1 for any gold banked
+    if (depth >= 700) e += 3;
+    else if (depth >= 500) e += 2;
     else if (depth >= 300) e += 1;
     return e;
   }
@@ -653,7 +727,7 @@ class DeepGoldGame {
     if (this.shakeI > 0) {
       this.shakeX = (Math.random() - 0.5) * this.shakeI;
       this.shakeY = (Math.random() - 0.5) * this.shakeI;
-      this.shakeI *= 0.88;
+      this.shakeI *= 0.85;
       if (this.shakeI < 0.3) { this.shakeI = 0; this.shakeX = 0; this.shakeY = 0; }
     }
 
@@ -663,22 +737,43 @@ class DeepGoldGame {
       if (this.flashAlpha < 0) this.flashAlpha = 0;
     }
 
-    // Particles
+    // Particles with air resistance
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
+      p.vx *= (1 - 1.5 * dt);
       p.x += p.vx * dt * 60;
       p.y += p.vy * dt * 60;
-      p.vy += 2.5 * dt * 60; // gravity
+      p.vy += 2.0 * dt * 60;
+      if (p.rotation !== undefined) p.rotation += p.spin * dt;
       p.life -= dt;
       if (p.life <= 0) this.particles.splice(i, 1);
     }
 
-    // Float texts
+    // Expanding rings
+    for (let i = this.rings.length - 1; i >= 0; i--) {
+      const r = this.rings[i];
+      r.radius += (r.maxRadius - r.radius) * dt * 6;
+      r.life -= dt;
+      if (r.life <= 0) this.rings.splice(i, 1);
+    }
+
+    // Float texts with deceleration
     for (let i = this.floatTexts.length - 1; i >= 0; i--) {
       const f = this.floatTexts[i];
-      f.y -= dt * 50;
+      const prog = 1 - f.life / f.maxLife;
+      f.y -= dt * 50 * (1 - prog * 0.6);
       f.life -= dt;
       if (f.life <= 0) this.floatTexts.splice(i, 1);
+    }
+
+    // Ambient floating particles
+    if (this.phase === 'playing' && Math.random() < dt * 2) this._spawnAmbientParticles();
+    for (let i = this.ambientParticles.length - 1; i >= 0; i--) {
+      const a = this.ambientParticles[i];
+      a.x += a.vx * dt * 60; a.y += a.vy * dt * 60;
+      a.x += Math.sin(performance.now() / 1000 + i) * 0.15;
+      a.life -= dt;
+      if (a.life <= 0) this.ambientParticles.splice(i, 1);
     }
   }
 
@@ -690,20 +785,77 @@ class DeepGoldGame {
     ctx.save();
     ctx.translate(this.shakeX, this.shakeY);
 
-    // Background
+    // Gradient background with vignette
     const biome = getBiome(this.depth);
-    ctx.fillStyle = biome.bg2;
+    const bgGrd = ctx.createLinearGradient(0, 0, 0, h);
+    bgGrd.addColorStop(0, biome.bg1);
+    bgGrd.addColorStop(1, biome.bg2);
+    ctx.fillStyle = bgGrd;
     ctx.fillRect(-20, -20, w + 40, h + 40);
+
+    // Vignette — stronger for depth illusion
+    const vig = ctx.createRadialGradient(w / 2, h / 2, w * 0.25, w / 2, h / 2, w * 0.85);
+    vig.addColorStop(0, 'transparent');
+    vig.addColorStop(0.7, 'rgba(0,0,0,0.15)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(-20, -20, w + 40, h + 40);
+
+    // Volumetric light shaft from top
+    const shaftW = 80 + Math.sin(performance.now() / 3000) * 20;
+    const shaftX = w / 2 + Math.sin(performance.now() / 5000) * 30;
+    const shaft = ctx.createLinearGradient(0, 0, 0, h * 0.7);
+    shaft.addColorStop(0, `rgba(240,220,180,${0.04 + Math.sin(performance.now() / 2000) * 0.02})`);
+    shaft.addColorStop(0.5, 'rgba(240,220,180,0.01)');
+    shaft.addColorStop(1, 'transparent');
+    ctx.fillStyle = shaft;
+    ctx.beginPath();
+    ctx.moveTo(shaftX - shaftW / 2, 0);
+    ctx.lineTo(shaftX - shaftW * 1.5, h * 0.7);
+    ctx.lineTo(shaftX + shaftW * 1.5, h * 0.7);
+    ctx.lineTo(shaftX + shaftW / 2, 0);
+    ctx.closePath();
+    ctx.fill();
 
     this._renderLayers();
     this._renderParticles();
     this._renderFloatTexts();
 
-    // Screen flash
+    // Depth fog at bottom edge
+    const depthFog = ctx.createLinearGradient(0, h - 60, 0, h);
+    depthFog.addColorStop(0, 'transparent');
+    depthFog.addColorStop(1, biome.bg2 + 'cc');
+    ctx.fillStyle = depthFog;
+    ctx.fillRect(0, h - 60, w, 60);
+
+    // Flash overlay with radial burst
     if (this.flashAlpha > 0) {
-      ctx.globalAlpha = this.flashAlpha * 0.25;
-      ctx.fillStyle = this.flashColor;
+      const fGrd = ctx.createRadialGradient(w / 2, h * 0.4, 0, w / 2, h * 0.4, w);
+      fGrd.addColorStop(0, this.flashColor);
+      fGrd.addColorStop(1, 'transparent');
+      ctx.globalAlpha = this.flashAlpha * 0.3;
+      ctx.fillStyle = fGrd;
       ctx.fillRect(0, 0, w, h);
+      ctx.globalAlpha = 1;
+    }
+
+    // Combo meter bar
+    if (this.combo >= 2 && this.phase === 'playing') {
+      const meterW = Math.min(1, this.combo / 12) * (w - 40);
+      const meterColor = this.combo >= 8 ? '#ff4040' : this.combo >= 5 ? '#ff8040' : '#f0c040';
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fillRect(20, h - 14, w - 40, 6);
+      const mGrd = ctx.createLinearGradient(20, 0, 20 + meterW, 0);
+      mGrd.addColorStop(0, meterColor);
+      mGrd.addColorStop(1, meterColor + '80');
+      ctx.fillStyle = mGrd;
+      ctx.fillRect(20, h - 14, meterW, 6);
+      ctx.globalAlpha = 0.8;
+      ctx.font = '700 10px Inter';
+      ctx.fillStyle = meterColor;
+      ctx.textAlign = 'right';
+      ctx.fillText(`${this.combo}x`, w - 22, h - 7);
       ctx.globalAlpha = 1;
     }
 
@@ -749,106 +901,265 @@ class DeepGoldGame {
     const w = this.w;
     const biome = getBiome(layer.depth);
     const isCurrent = index === this.currentIndex;
+    const lh = LAYER_H;
 
     if (!layer.revealed) {
-      // ── Unrevealed ──
-      ctx.fillStyle = biome.bg1;
-      ctx.fillRect(0, sy, w, LAYER_H);
+      // ── Unrevealed: 3D earth block ──
 
-      // Earth texture dots (seeded random)
+      // Base fill
+      ctx.fillStyle = biome.bg1;
+      ctx.fillRect(0, sy, w, lh);
+
+      // Top highlight edge (3D bevel)
+      const topGrd = ctx.createLinearGradient(0, sy, 0, sy + 8);
+      topGrd.addColorStop(0, 'rgba(255,255,255,0.07)');
+      topGrd.addColorStop(1, 'transparent');
+      ctx.fillStyle = topGrd;
+      ctx.fillRect(0, sy, w, 8);
+
+      // Bottom shadow edge (3D bevel)
+      const botGrd = ctx.createLinearGradient(0, sy + lh - 6, 0, sy + lh);
+      botGrd.addColorStop(0, 'transparent');
+      botGrd.addColorStop(1, 'rgba(0,0,0,0.25)');
+      ctx.fillStyle = botGrd;
+      ctx.fillRect(0, sy + lh - 6, w, 6);
+
+      // Earth texture: rock clusters with 3D shading
       const seed = layer.index * 137 + 42;
-      ctx.fillStyle = 'rgba(0,0,0,0.12)';
-      for (let j = 0; j < 6; j++) {
+      for (let j = 0; j < 10; j++) {
         const rx = ((seed * (j + 1) * 7 + 11) % 200) / 200 * w;
-        const ry = ((seed * (j + 1) * 13 + 7) % 100) / 100 * LAYER_H;
-        const rs = 2 + ((seed * (j + 1) * 3) % 8);
-        ctx.beginPath();
-        ctx.arc(rx, sy + ry, rs, 0, Math.PI * 2);
-        ctx.fill();
+        const ry = ((seed * (j + 1) * 13 + 7) % 100) / 100 * (lh - 4) + 2;
+        const rs = 3 + ((seed * (j + 1) * 3) % 7);
+        // Rock shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        ctx.beginPath(); ctx.arc(rx + 1, sy + ry + 1, rs, 0, Math.PI * 2); ctx.fill();
+        // Rock body
+        ctx.fillStyle = 'rgba(0,0,0,0.10)';
+        ctx.beginPath(); ctx.arc(rx, sy + ry, rs, 0, Math.PI * 2); ctx.fill();
+        // Rock highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.04)';
+        ctx.beginPath(); ctx.arc(rx - 1, sy + ry - 1, rs * 0.6, 0, Math.PI * 2); ctx.fill();
       }
 
-      // Current layer: pulsing gold border
+      // Stone vein lines (geological strata)
+      ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+      ctx.lineWidth = 1;
+      const veinY1 = sy + ((seed * 11) % lh);
+      ctx.beginPath();
+      ctx.moveTo(0, veinY1);
+      ctx.quadraticCurveTo(w * 0.3, veinY1 + 4, w * 0.6, veinY1 - 2);
+      ctx.quadraticCurveTo(w * 0.8, veinY1 + 3, w, veinY1 + 1);
+      ctx.stroke();
+
+      // Mineral sparkles
+      if (Math.sin(seed * 0.7) > 0.3) {
+        const sparkT = performance.now() / 1500 + seed;
+        const sparkAlpha = 0.08 + Math.sin(sparkT) * 0.06;
+        ctx.fillStyle = `rgba(240,220,180,${sparkAlpha})`;
+        const sx1 = ((seed * 17) % 200) / 200 * w;
+        const sy1 = ((seed * 23) % 100) / 100 * lh;
+        ctx.beginPath(); ctx.arc(sx1, sy + sy1, 1.5, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Side shadow gradient for tunnel depth illusion
+      const leftShad = ctx.createLinearGradient(0, sy, 30, sy);
+      leftShad.addColorStop(0, 'rgba(0,0,0,0.12)');
+      leftShad.addColorStop(1, 'transparent');
+      ctx.fillStyle = leftShad;
+      ctx.fillRect(0, sy, 30, lh);
+      const rightShad = ctx.createLinearGradient(w - 30, sy, w, sy);
+      rightShad.addColorStop(0, 'transparent');
+      rightShad.addColorStop(1, 'rgba(0,0,0,0.12)');
+      ctx.fillStyle = rightShad;
+      ctx.fillRect(w - 30, sy, 30, lh);
+
+      // Current layer: animated gold glow border
       if (isCurrent && this.phase === 'playing') {
         const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 300);
-        ctx.strokeStyle = `rgba(240,192,64,${0.25 + pulse * 0.45})`;
+        // Outer glow
+        ctx.shadowColor = `rgba(240,192,64,${0.3 + pulse * 0.4})`;
+        ctx.shadowBlur = 12;
+        ctx.strokeStyle = `rgba(240,192,64,${0.3 + pulse * 0.5})`;
         ctx.lineWidth = 2.5;
-        ctx.strokeRect(1, sy + 1, w - 2, LAYER_H - 2);
+        ctx.strokeRect(2, sy + 2, w - 4, lh - 4);
+        ctx.shadowBlur = 0;
 
-        // Tap hint
-        ctx.fillStyle = `rgba(240,192,64,${0.35 + pulse * 0.45})`;
-        ctx.font = '700 13px Inter';
+        // Animated pickaxe with bounce
+        const bounce = Math.sin(performance.now() / 200) * 3;
+        ctx.fillStyle = `rgba(240,192,64,${0.4 + pulse * 0.5})`;
+        ctx.font = '700 14px Inter';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('⛏️  TAP TO DIG', w / 2, sy + LAYER_H / 2);
+        ctx.fillText('⛏️  TAP TO DIG', w / 2, sy + lh / 2 + bounce);
       }
 
-      // Depth fog for layers below current
+      // Depth fog
       if (index > this.currentIndex) {
-        const fog = Math.min(0.6, (index - this.currentIndex) * 0.1);
+        const fog = Math.min(0.8, (index - this.currentIndex) * 0.10);
         ctx.fillStyle = `rgba(0,0,0,${fog})`;
-        ctx.fillRect(0, sy, w, LAYER_H);
+        ctx.fillRect(0, sy, w, lh);
       }
 
     } else {
-      // ── Revealed ──
+      // ── Revealed: 3D opened tile ──
       const vis = TILE_VIS[layer.type];
 
-      // Background
+      // Background with inner shadow
       ctx.fillStyle = layer.type === 'dynamite' ? '#150404' : biome.bg2;
-      ctx.fillRect(0, sy, w, LAYER_H);
+      ctx.fillRect(0, sy, w, lh);
 
-      // Glow for valuable finds
+      // Top inner shadow (looks carved in)
+      const innerTop = ctx.createLinearGradient(0, sy, 0, sy + 10);
+      innerTop.addColorStop(0, 'rgba(0,0,0,0.3)');
+      innerTop.addColorStop(1, 'transparent');
+      ctx.fillStyle = innerTop;
+      ctx.fillRect(0, sy, w, 10);
+
+      // Bottom inner highlight
+      const innerBot = ctx.createLinearGradient(0, sy + lh - 5, 0, sy + lh);
+      innerBot.addColorStop(0, 'transparent');
+      innerBot.addColorStop(1, 'rgba(255,255,255,0.03)');
+      ctx.fillStyle = innerBot;
+      ctx.fillRect(0, sy + lh - 5, w, 5);
+
+      // Side shadows for depth
+      const lSh = ctx.createLinearGradient(0, sy, 20, sy);
+      lSh.addColorStop(0, 'rgba(0,0,0,0.2)');
+      lSh.addColorStop(1, 'transparent');
+      ctx.fillStyle = lSh;
+      ctx.fillRect(0, sy, 20, lh);
+      const rSh = ctx.createLinearGradient(w - 20, sy, w, sy);
+      rSh.addColorStop(0, 'transparent');
+      rSh.addColorStop(1, 'rgba(0,0,0,0.2)');
+      ctx.fillStyle = rSh;
+      ctx.fillRect(w - 20, sy, 20, lh);
+
+      // Glow for valuable finds — volumetric light
       if (vis.glow && layer.type !== 'rock') {
-        const grd = ctx.createRadialGradient(w / 2, sy + LAYER_H / 2, 0, w / 2, sy + LAYER_H / 2, LAYER_H * 1.8);
-        grd.addColorStop(0, vis.color + '22');
+        // Outer glow ring
+        const grd = ctx.createRadialGradient(w / 2, sy + lh / 2, 0, w / 2, sy + lh / 2, lh * 2.5);
+        grd.addColorStop(0, vis.color + '55');
+        grd.addColorStop(0.3, vis.color + '22');
+        grd.addColorStop(0.6, vis.color + '0a');
         grd.addColorStop(1, 'transparent');
         ctx.fillStyle = grd;
-        ctx.fillRect(0, sy, w, LAYER_H);
+        ctx.fillRect(0, sy, w, lh);
+
+        // Inner bright core
+        const core = ctx.createRadialGradient(w / 2, sy + lh / 2, 0, w / 2, sy + lh / 2, lh * 0.8);
+        core.addColorStop(0, vis.color + '30');
+        core.addColorStop(1, 'transparent');
+        ctx.fillStyle = core;
+        ctx.fillRect(0, sy, w, lh);
+
+        // Pulsing for high value
+        if (layer.value >= 20) {
+          const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 400);
+          ctx.globalAlpha = pulse * 0.15;
+          const pGrd = ctx.createRadialGradient(w / 2, sy + lh / 2, 0, w / 2, sy + lh / 2, lh);
+          pGrd.addColorStop(0, vis.color);
+          pGrd.addColorStop(1, 'transparent');
+          ctx.fillStyle = pGrd;
+          ctx.fillRect(0, sy, w, lh);
+          ctx.globalAlpha = 1;
+        }
+
+        // Light rays from center
+        const rayT = performance.now() / 2000;
+        ctx.globalAlpha = 0.06;
+        ctx.fillStyle = vis.color;
+        for (let r = 0; r < 6; r++) {
+          const ang = rayT + (r / 6) * Math.PI * 2;
+          const rayLen = lh * 1.5;
+          ctx.save();
+          ctx.translate(w / 2, sy + lh / 2);
+          ctx.rotate(ang);
+          ctx.fillRect(-1, 0, 2, rayLen);
+          ctx.restore();
+        }
+        ctx.globalAlpha = 1;
       }
 
-      // Dynamite debris overlay
+      // Dynamite: pulsing red embers
       if (layer.type === 'dynamite') {
         ctx.fillStyle = 'rgba(255,40,40,0.08)';
-        ctx.fillRect(0, sy, w, LAYER_H);
+        ctx.fillRect(0, sy, w, lh);
+        // Scattered embers
+        const et = performance.now() / 800;
+        for (let e = 0; e < 4; e++) {
+          const ex = w * 0.2 + (e / 4) * w * 0.6;
+          const ey = sy + lh * 0.3 + Math.sin(et + e * 2) * 6;
+          const ea = 0.15 + Math.sin(et * 2 + e) * 0.1;
+          ctx.fillStyle = `rgba(255,100,20,${ea})`;
+          ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI * 2); ctx.fill();
+        }
       }
 
-      // Icon
+      // Icon with shadow & glow
       if (vis.icon) {
-        ctx.font = '26px serif';
+        ctx.save();
+        // Icon shadow
+        ctx.shadowColor = vis.glow ? vis.color + '80' : 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = vis.glow ? 16 : 4;
+        ctx.shadowOffsetY = vis.glow ? 0 : 2;
+        ctx.font = '28px serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(vis.icon, w / 2, sy + LAYER_H / 2);
+        ctx.fillText(vis.icon, w / 2, sy + lh / 2);
+        ctx.restore();
       }
 
-      // Value badge
+      // Value badge with glow
       if (layer.value > 0) {
-        ctx.font = '700 11px Inter';
+        ctx.save();
+        ctx.shadowColor = vis.color + '60';
+        ctx.shadowBlur = 8;
+        ctx.font = '700 12px Inter';
         ctx.fillStyle = vis.color;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillText('+' + layer.value, w / 2 + 22, sy + LAYER_H / 2 + 1);
+        ctx.fillText('+' + layer.value, w / 2 + 24, sy + lh / 2 + 1);
+        ctx.restore();
       }
 
-      // Rock cracks
+      // Rock: detailed crack patterns
       if (layer.type === 'rock') {
-        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
         ctx.lineWidth = 1;
         const s = layer.index * 37;
+        // Main crack
         ctx.beginPath();
-        ctx.moveTo(w * 0.2, sy + ((s * 3) % LAYER_H));
-        ctx.lineTo(w * 0.5, sy + LAYER_H * 0.5);
-        ctx.lineTo(w * 0.8, sy + ((s * 7) % LAYER_H));
+        ctx.moveTo(w * 0.15, sy + ((s * 3) % lh));
+        ctx.quadraticCurveTo(w * 0.35, sy + lh * 0.4, w * 0.5, sy + lh * 0.5);
+        ctx.quadraticCurveTo(w * 0.65, sy + lh * 0.6, w * 0.85, sy + ((s * 7) % lh));
         ctx.stroke();
+        // Secondary crack
+        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+        ctx.beginPath();
+        ctx.moveTo(w * 0.4, sy + 4);
+        ctx.quadraticCurveTo(w * 0.55, sy + lh * 0.3, w * 0.3, sy + lh - 4);
+        ctx.stroke();
+        // Pebble details
+        for (let p = 0; p < 3; p++) {
+          const px = ((s * (p + 3) * 11) % 200) / 200 * (w - 40) + 20;
+          const py = ((s * (p + 3) * 17) % 100) / 100 * (lh - 8) + 4;
+          ctx.fillStyle = 'rgba(255,255,255,0.02)';
+          ctx.beginPath(); ctx.arc(px, sy + py, 4 + (s * p) % 4, 0, Math.PI * 2); ctx.fill();
+        }
       }
 
-      // Multiplier label
+      // Multiplier label with glow
       const m = getMultiplier(layer.depth);
       if (m > 1) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(240,192,64,0.3)';
+        ctx.shadowBlur = 6;
         ctx.font = '600 9px Inter';
-        ctx.fillStyle = `rgba(240,192,64,0.3)`;
+        ctx.fillStyle = `rgba(240,192,64,0.35)`;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        ctx.fillText(`×${m}`, 6, sy + 4);
+        ctx.fillText(`\u00d7${m}`, 6, sy + 4);
+        ctx.restore();
       }
 
       // Biome transition label
@@ -899,13 +1210,93 @@ class DeepGoldGame {
 
   _renderParticles() {
     const ctx = this.ctx;
+    const camY = this.scrollCurrent - this.h * CAMERA_RATIO;
+
+    // Ambient particles with soft bloom glow
+    for (const a of this.ambientParticles) {
+      const la = Math.max(0, Math.min(1, a.life / a.maxLife));
+      const ax = a.x, ay = a.y - camY;
+      // Outer bloom
+      ctx.globalAlpha = a.alpha * la * 0.2;
+      const bg = ctx.createRadialGradient(ax, ay, 0, ax, ay, a.size * 4);
+      bg.addColorStop(0, a.color); bg.addColorStop(1, 'transparent');
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.arc(ax, ay, a.size * 4, 0, Math.PI * 2); ctx.fill();
+      // Core
+      ctx.globalAlpha = a.alpha * la;
+      ctx.fillStyle = a.color;
+      ctx.beginPath(); ctx.arc(ax, ay, a.size, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Expanding rings with double-ring + glow
+    for (const r of this.rings) {
+      const a = Math.max(0, r.life / r.maxLife);
+      // Outer glow ring
+      ctx.globalAlpha = a * 0.15;
+      ctx.strokeStyle = r.color;
+      ctx.lineWidth = 8 * a;
+      ctx.beginPath(); ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2); ctx.stroke();
+      // Main ring
+      ctx.globalAlpha = a * 0.5;
+      ctx.lineWidth = 2.5 * a;
+      ctx.beginPath(); ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2); ctx.stroke();
+      // Inner ring
+      ctx.globalAlpha = a * 0.25;
+      ctx.lineWidth = 1.5 * a;
+      ctx.beginPath(); ctx.arc(r.x, r.y, r.radius * 0.7, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // Main particles with bloom and metallic sheen
     for (const p of this.particles) {
       const a = Math.max(0, p.life / p.maxLife);
+      const sz = p.size * (0.3 + a * 0.7);
+
+      // Bloom glow behind particle
+      if (a > 0.2) {
+        ctx.globalAlpha = a * 0.12;
+        const pg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, sz * 3.5);
+        pg.addColorStop(0, p.color); pg.addColorStop(0.5, p.color + '40'); pg.addColorStop(1, 'transparent');
+        ctx.fillStyle = pg;
+        ctx.beginPath(); ctx.arc(p.x, p.y, sz * 3.5, 0, Math.PI * 2); ctx.fill();
+      }
+
       ctx.globalAlpha = a;
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * (0.3 + a * 0.7), 0, Math.PI * 2);
-      ctx.fill();
+      if (p.shape === 'star') {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation || 0);
+        // 5-point star with inner/outer radius
+        ctx.beginPath();
+        for (let j = 0; j < 10; j++) {
+          const ang = (j * Math.PI) / 5 - Math.PI / 2;
+          const r2 = j % 2 === 0 ? sz : sz * 0.4;
+          const method = j === 0 ? 'moveTo' : 'lineTo';
+          ctx[method](Math.cos(ang) * r2, Math.sin(ang) * r2);
+        }
+        ctx.closePath();
+        // Metallic fill gradient
+        const sg = ctx.createLinearGradient(-sz, -sz, sz, sz);
+        sg.addColorStop(0, '#fff'); sg.addColorStop(0.3, p.color); sg.addColorStop(1, p.color);
+        ctx.fillStyle = sg;
+        ctx.fill();
+        ctx.restore();
+      } else {
+        // Circle with highlight
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, sz, 0, Math.PI * 2); ctx.fill();
+        // Specular highlight
+        ctx.globalAlpha = a * 0.6;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(p.x - sz * 0.25, p.y - sz * 0.25, sz * 0.35, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Motion trail
+      if (a > 0.4 && (Math.abs(p.vx) > 1 || Math.abs(p.vy) > 1)) {
+        ctx.globalAlpha = a * 0.08;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x - p.vx * 0.5, p.y - p.vy * 0.5, sz * 0.7, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x - p.vx, p.y - p.vy, sz * 0.4, 0, Math.PI * 2); ctx.fill();
+      }
     }
     ctx.globalAlpha = 1;
   }
@@ -914,16 +1305,40 @@ class DeepGoldGame {
     const ctx = this.ctx;
     for (const f of this.floatTexts) {
       const a = Math.max(0, Math.min(1, f.life / f.maxLife));
+      const prog = 1 - f.life / f.maxLife;
+      const scale = prog < 0.1 ? prog / 0.1 : prog < 0.2 ? 1 + (0.2 - prog) * 3 : 1.0 - (prog - 0.2) * 0.3;
       ctx.globalAlpha = a;
+      ctx.save();
+      ctx.translate(f.x, f.y);
+      ctx.scale(scale, scale);
+
+      // Outer bloom glow
       ctx.font = `800 ${f.size}px Inter`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = f.color;
+      ctx.shadowBlur = 20;
+      ctx.globalAlpha = a * 0.4;
       ctx.fillStyle = f.color;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      // Shadow for readability
-      ctx.shadowColor = 'rgba(0,0,0,0.6)';
-      ctx.shadowBlur = 6;
-      ctx.fillText(f.text, f.x, f.y);
+      ctx.fillText(f.text, 0, 0);
+
+      // Main text with stroke for depth
+      ctx.globalAlpha = a;
+      ctx.shadowBlur = 10;
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = 3;
+      ctx.strokeText(f.text, 0, 0);
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = f.color + '80';
+      ctx.shadowBlur = 8;
+      ctx.fillText(f.text, 0, 0);
+
+      // Color overlay
+      ctx.globalAlpha = a * 0.6;
       ctx.shadowBlur = 0;
+      ctx.fillStyle = f.color;
+      ctx.fillText(f.text, 0, 0);
+
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
   }
@@ -936,16 +1351,38 @@ class DeepGoldGame {
 
   _spawnParticles(x, y, color, count) {
     for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+      const speed = 2.5 + Math.random() * 6;
       this.particles.push({
         x, y,
-        vx: (Math.random() - 0.5) * 7,
-        vy: (Math.random() - 1) * 5,
-        life: 0.3 + Math.random() * 0.5,
-        maxLife: 0.7,
-        size: 2 + Math.random() * 4,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2.5,
+        life: 0.5 + Math.random() * 0.7,
+        maxLife: 1.1,
+        size: 2.5 + Math.random() * 4.5,
         color,
+        shape: Math.random() > 0.4 ? 'star' : 'circle',
+        rotation: Math.random() * Math.PI * 2,
+        spin: (Math.random() - 0.5) * 10,
       });
     }
+  }
+
+  _spawnRing(x, y, color) {
+    this.rings.push({ x, y, color, radius: 5, maxRadius: 130, life: 0.6, maxLife: 0.6 });
+  }
+
+  _spawnAmbientParticles() {
+    if (this.ambientParticles.length > 20) return;
+    const x = Math.random() * this.w;
+    const camY = this.scrollCurrent - this.h * CAMERA_RATIO;
+    const y = camY + Math.random() * this.h;
+    const biome = getBiome(this.depth);
+    this.ambientParticles.push({
+      x, y, vx: (Math.random() - 0.5) * 0.3, vy: -0.2 - Math.random() * 0.3,
+      life: 3 + Math.random() * 3, maxLife: 5, size: 1 + Math.random() * 2,
+      color: biome.accent, alpha: 0.15 + Math.random() * 0.15,
+    });
   }
 
   _addFloat(x, y, text, color, size) {
