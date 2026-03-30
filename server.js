@@ -1608,8 +1608,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
 
   try {
     const origin = `${req.protocol}://${req.get('host')}`;
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+    const sessionOpts = {
       line_items: [{
         price_data: {
           currency: 'usd',
@@ -1629,7 +1628,20 @@ app.post('/api/create-checkout-session', async (req, res) => {
         tier: tier || '',
       },
       customer_email: player.email || undefined,
-    });
+    };
+    // Let Stripe auto-enable all payment methods from Dashboard (card, Apple Pay, Google Pay, Cash App, etc.)
+    // If Stripe rejects automatic mode (older API version), fall back to explicit list
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create(sessionOpts);
+    } catch (autoErr) {
+      if (autoErr.message && autoErr.message.includes('payment_method_types')) {
+        sessionOpts.payment_method_types = ['card', 'cashapp', 'link'];
+        session = await stripe.checkout.sessions.create(sessionOpts);
+      } else {
+        throw autoErr;
+      }
+    }
     res.json({ url: session.url, sessionId: session.id });
   } catch (err) {
     log('error', 'Stripe session creation failed', { playerId, error: err.message });
@@ -1683,8 +1695,7 @@ app.post('/api/donate', rateLimit(10000, 5), async (req, res) => {
   try {
     const origin = `${req.protocol}://${req.get('host')}`;
     const potLabel = targetPot && state.pots[targetPot] ? state.pots[targetPot].label : 'All Pots';
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+    const donateOpts = {
       line_items: [{
         price_data: {
           currency: 'usd',
@@ -1702,7 +1713,18 @@ app.post('/api/donate', rateLimit(10000, 5), async (req, res) => {
         amount: String(amount),
         potId: targetPot || '',
       },
-    });
+    };
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create(donateOpts);
+    } catch (autoErr) {
+      if (autoErr.message && autoErr.message.includes('payment_method_types')) {
+        donateOpts.payment_method_types = ['card', 'cashapp', 'link'];
+        session = await stripe.checkout.sessions.create(donateOpts);
+      } else {
+        throw autoErr;
+      }
+    }
     res.json({ url: session.url, sessionId: session.id });
   } catch (err) {
     log('error', 'Donation Stripe session failed', { error: err.message });
@@ -2412,14 +2434,14 @@ app.get('/api/player/:id', rateLimit(2000, 10), (req, res) => {
 });
 
 // ─── Payment Method ─────────────────────────────────────────────────────
-const VALID_METHODS = ['apple_pay', 'google_pay', 'card', 'cashapp', 'paypal', 'venmo'];
+const VALID_METHODS = ['apple_pay', 'google_pay', 'card', 'cashapp', 'amazon_pay', 'link'];
 const METHOD_LABELS = {
   apple_pay: { icon: ' Pay', label: 'Apple Pay' },
   google_pay: { icon: 'G Pay', label: 'Google Pay' },
   card: { icon: '💳', label: 'Card' },
   cashapp: { icon: '$', label: 'Cash App' },
-  paypal: { icon: 'P', label: 'PayPal' },
-  venmo: { icon: 'V', label: 'Venmo' },
+  amazon_pay: { icon: 'a', label: 'Amazon Pay' },
+  link: { icon: '⚡', label: 'Link' },
 };
 
 app.post('/api/payment-method', rateLimit(30000, 5), (req, res) => {
@@ -3800,11 +3822,87 @@ function updateTopGifters(stream, playerId, playerName, amount) {
 
 // ─── Withdrawals ────────────────────────────────────────────────────────────
 const WITHDRAW_METHOD_LABELS = {
+  stripe_connect: 'Bank Account',
   paypal: 'PayPal',
   cashapp: 'Cash App',
   venmo: 'Venmo',
 };
 const MIN_WITHDRAW_CENTS = 500; // $5 minimum
+
+// ─── Stripe Connect (payouts to user bank accounts) ─────────────────────────
+app.post('/api/connect-account', rateLimit(60000, 3), async (req, res) => {
+  if (!stripe) return res.status(503).json({ error: 'Payments not configured' });
+  const player = getPlayer(req.body.playerId);
+  if (!player) return res.status(404).json({ error: 'Player not found' });
+  const origin = `${req.protocol}://${req.get('host')}`;
+  try {
+    let accountId = player.stripeConnectId;
+    if (!accountId) {
+      const account = await stripe.accounts.create({
+        type: 'express',
+        metadata: { playerId: player.id },
+        capabilities: { transfers: { requested: true } },
+      });
+      accountId = account.id;
+      player.stripeConnectId = accountId;
+      putPlayer(player);
+      db.logAudit('stripe_connect_created', { playerId: player.id, details: { accountId } });
+    }
+    const link = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${origin}/?connect_refresh=1`,
+      return_url: `${origin}/?connect_return=1`,
+      type: 'account_onboarding',
+    });
+    res.json({ url: link.url });
+  } catch (err) {
+    log('error', 'Stripe Connect account creation failed', { playerId: player.id, error: err.message });
+    res.status(500).json({ error: 'Failed to create payout account' });
+  }
+});
+
+app.get('/api/connect-status', rateLimit(10000, 10), (req, res) => {
+  if (!stripe) return res.json({ connected: false });
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  let playerId;
+  try {
+    const decoded = jwt.verify(authHeader.slice(7), JWT_SECRET);
+    playerId = decoded.sub;
+  } catch {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+  const player = getPlayer(playerId);
+  if (!player) return res.status(404).json({ error: 'Player not found' });
+  if (!player.stripeConnectId) return res.json({ connected: false });
+  // Check account status asynchronously
+  stripe.accounts.retrieve(player.stripeConnectId).then(account => {
+    res.json({
+      connected: account.charges_enabled || account.payouts_enabled,
+      detailsSubmitted: account.details_submitted,
+      payoutsEnabled: account.payouts_enabled,
+      accountId: player.stripeConnectId,
+    });
+  }).catch(() => {
+    res.json({ connected: false });
+  });
+});
+
+app.post('/api/connect-dashboard', rateLimit(60000, 5), async (req, res) => {
+  if (!stripe) return res.status(503).json({ error: 'Payments not configured' });
+  const player = getPlayer(req.body.playerId);
+  if (!player) return res.status(404).json({ error: 'Player not found' });
+  if (!player.stripeConnectId) return res.status(400).json({ error: 'No payout account connected' });
+  try {
+    const link = await stripe.accounts.createLoginLink(player.stripeConnectId);
+    res.json({ url: link.url });
+  } catch (err) {
+    log('error', 'Stripe dashboard link failed', { playerId: player.id, error: err.message });
+    res.status(500).json({ error: 'Failed to create dashboard link' });
+  }
+});
 
 app.get('/api/withdrawals', rateLimit(10000, 10), (req, res) => {
   const authHeader = req.headers.authorization;
@@ -3851,23 +3949,32 @@ app.post('/api/withdraw', rateLimit(60000, 3), (req, res) => {
   if (!player) return res.status(404).json({ error: 'Player not found' });
 
   const { method, handle, amount } = req.body;
-  const WITHDRAW_METHODS = ['paypal', 'cashapp', 'venmo'];
+  const WITHDRAW_METHODS = ['stripe_connect', 'paypal', 'cashapp', 'venmo'];
   if (!WITHDRAW_METHODS.includes(method)) {
-    return res.status(400).json({ error: 'Invalid withdrawal method. Use: PayPal, Cash App, or Venmo' });
+    return res.status(400).json({ error: 'Invalid withdrawal method' });
   }
-  const cleanHandle = sanitizeString(String(handle || ''), 100);
-  if (!cleanHandle || cleanHandle.length < 3) {
-    return res.status(400).json({ error: 'Please enter a valid account handle' });
-  }
-  // Per-method handle format validation
-  if (method === 'paypal' && !/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(cleanHandle)) {
-    return res.status(400).json({ error: 'PayPal handle must be a valid email address' });
-  }
-  if (method === 'cashapp' && !/^\$[a-zA-Z0-9_]{1,20}$/.test(cleanHandle)) {
-    return res.status(400).json({ error: 'Cash App handle must be $username format' });
-  }
-  if (method === 'venmo' && !/^@[a-zA-Z0-9_-]{1,30}$/.test(cleanHandle)) {
-    return res.status(400).json({ error: 'Venmo handle must be @username format' });
+
+  let cleanHandle = '';
+  if (method === 'stripe_connect') {
+    if (!player.stripeConnectId) {
+      return res.status(400).json({ error: 'Please connect your bank account first' });
+    }
+    cleanHandle = player.stripeConnectId;
+  } else {
+    cleanHandle = sanitizeString(String(handle || ''), 100);
+    if (!cleanHandle || cleanHandle.length < 3) {
+      return res.status(400).json({ error: 'Please enter a valid account handle' });
+    }
+    // Per-method handle format validation
+    if (method === 'paypal' && !/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(cleanHandle)) {
+      return res.status(400).json({ error: 'PayPal handle must be a valid email address' });
+    }
+    if (method === 'cashapp' && !/^\$[a-zA-Z0-9_]{1,20}$/.test(cleanHandle)) {
+      return res.status(400).json({ error: 'Cash App handle must be $username format' });
+    }
+    if (method === 'venmo' && !/^@[a-zA-Z0-9_-]{1,30}$/.test(cleanHandle)) {
+      return res.status(400).json({ error: 'Venmo handle must be @username format' });
+    }
   }
 
   const cents = parseInt(amount);
@@ -3954,7 +4061,7 @@ app.get('/api/admin/withdrawals', rateLimit(10000, 10), (req, res) => {
 });
 
 // Admin: approve/reject withdrawal
-app.post('/api/admin/withdrawal-action', rateLimit(60000, 10), (req, res) => {
+app.post('/api/admin/withdrawal-action', rateLimit(60000, 10), async (req, res) => {
   if (!verifyAdminSecret(req.headers['x-admin-secret'], req)) {
     const ri = reqInfo(req);
     db.logSecurityEvent('critical', 'admin', 'admin_auth_failed', {
@@ -3970,6 +4077,27 @@ app.post('/api/admin/withdrawal-action', rateLimit(60000, 10), (req, res) => {
   const id = parseInt(withdrawalId);
   if (!id) return res.status(400).json({ error: 'Invalid withdrawal ID' });
 
+  const w = db.getWithdrawalById(id);
+  if (!w) return res.status(404).json({ error: 'Withdrawal not found' });
+
+  // For Stripe Connect withdrawals, execute the transfer before marking approved
+  let transferId = null;
+  if (action === 'approved' && w.method === 'stripe_connect' && stripe) {
+    try {
+      const transfer = await stripe.transfers.create({
+        amount: w.amount,
+        currency: 'usd',
+        destination: w.handle, // handle stores the stripeConnectId
+        metadata: { withdrawalId: String(id), playerId: w.player_id },
+        description: `GoldPot withdrawal #${id}`,
+      });
+      transferId = transfer.id;
+    } catch (err) {
+      log('error', 'Stripe transfer failed', { withdrawalId: id, error: err.message });
+      return res.status(500).json({ error: `Stripe transfer failed: ${err.message}` });
+    }
+  }
+
   const updateResult = db.updateWithdrawalStatus(id, action, note || '');
   if (updateResult.error) {
     return res.status(400).json({ error: updateResult.error });
@@ -3977,30 +4105,24 @@ app.post('/api/admin/withdrawal-action', rateLimit(60000, 10), (req, res) => {
 
   // If approved, deduct from player's totalWithdrawn tracker
   if (action === 'approved') {
-    const w = db.getWithdrawalById(id);
-    if (w) {
-      db.logAudit('withdrawal_approved', {
-        playerId: w.player_id, amount: w.amount,
-        details: { withdrawalId: id, method: w.method, handle: w.handle, note: note || '' },
-      });
-      const p = getPlayer(w.player_id);
-      if (p) {
-        p.totalWithdrawn = (p.totalWithdrawn || 0) + w.amount;
-        putPlayer(p);
-      }
+    db.logAudit('withdrawal_approved', {
+      playerId: w.player_id, amount: w.amount,
+      details: { withdrawalId: id, method: w.method, handle: w.handle, note: note || '', transferId },
+    });
+    const p = getPlayer(w.player_id);
+    if (p) {
+      p.totalWithdrawn = (p.totalWithdrawn || 0) + w.amount;
+      putPlayer(p);
     }
   } else {
-    const w = db.getWithdrawalById(id);
-    if (w) {
-      db.logAudit('withdrawal_rejected', {
-        playerId: w.player_id, amount: w.amount,
-        details: { withdrawalId: id, method: w.method, note: note || '' },
-      });
-    }
+    db.logAudit('withdrawal_rejected', {
+      playerId: w.player_id, amount: w.amount,
+      details: { withdrawalId: id, method: w.method, note: note || '' },
+    });
   }
 
-  trackEvent('withdrawal_' + action, { withdrawalId: id, note });
-  res.json({ success: true, action });
+  trackEvent('withdrawal_' + action, { withdrawalId: id, note, transferId });
+  res.json({ success: true, action, transferId });
 });
 
 // ─── KYC (Know Your Customer) ───────────────────────────────────────────────────────

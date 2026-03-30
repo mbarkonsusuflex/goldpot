@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://js.stripe.com">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@700&display=swap" as="style">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
   <meta name="description" content="Help build the jackpot. 100% of donations go to the prize pots. GoldPot — America's community-built sweepstakes.">
@@ -145,6 +146,7 @@
         <button id="shareBtn" class="btn-icon" title="Share" aria-label="Share">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         </button>
+        <button id="logoutBtn" class="btn-icon logout-btn" title="Log out" aria-label="Log out">🚪</button>
       </div>
     </header>
 
@@ -267,8 +269,8 @@
       </div>
     </section>
 
-    <!-- GAME AREA (hidden pre-launch) -->
-    <section class="game-section hidden" id="gameSection">
+    <!-- GAME AREA -->
+    <section class="game-section" id="gameSection">
       <div class="game-container" id="gameContainer">
         <canvas id="gameCanvas" role="img" aria-label="Deep Gold mining game"></canvas>
         <div class="game-overlay" id="gameOverlay">
@@ -328,11 +330,11 @@
         <span class="btn-sub">100% goes directly into the jackpot</span>
       </button>
       <div class="btn-row btn-row-secondary">
-        <button class="btn btn-free" id="btnFree" style="display:none">
+        <button class="btn btn-free" id="btnFree">
           <span class="btn-label">FREE ENTRY</span>
           <span class="btn-sub" id="freeEntryStatus">1 per pot per round</span>
         </button>
-        <button class="btn btn-quick-entry" id="btnQuickEntry" style="display:none">
+        <button class="btn btn-quick-entry" id="btnQuickEntry">
           <span class="btn-label">⚡ QUICK — $1</span>
           <span class="btn-sub">Skip game, instant entry</span>
         </button>
@@ -783,8 +785,9 @@
         </div>
         <div class="referral-code-wrap">
           <input type="text" id="referralCode" class="referral-input" readonly aria-label="Your referral code">
-          <button class="btn-copy" id="btnCopy">COPY LINK</button>
+          <button class="btn-copy" id="btnCopy">COPY CODE</button>
         </div>
+        <button class="btn-ref-copy-link" id="btnRefCopyLink">📋 Copy My Referral Link</button>
         <div class="referral-share-row">
           <button class="btn-share btn-share-x" id="shareX">𝕏 Post</button>
           <button class="btn-share btn-share-sms" id="shareSMS">💬 Text</button>
@@ -1007,7 +1010,7 @@
         <p class="name-sub">One-tap purchases. Change anytime.</p>
         <div class="payment-grid" id="onboardPaymentGrid">
           <button class="pay-option" data-method="apple_pay">
-            <span class="pay-icon"> Pay</span>
+            <span class="pay-icon"> Pay</span>
             <span class="pay-label">Apple Pay</span>
             <span class="pay-badge">INSTANT</span>
           </button>
@@ -1025,24 +1028,17 @@
             <span class="pay-label">Cash App</span>
             <span class="pay-badge pay-badge-hot">POPULAR</span>
           </button>
-          <button class="pay-option" data-method="paypal">
-            <span class="pay-icon">P</span>
-            <span class="pay-label">PayPal</span>
+          <button class="pay-option" data-method="amazon_pay">
+            <span class="pay-icon">a</span>
+            <span class="pay-label">Amazon Pay</span>
           </button>
-          <button class="pay-option" data-method="venmo">
-            <span class="pay-icon">V</span>
-            <span class="pay-label">Venmo</span>
+          <button class="pay-option" data-method="link">
+            <span class="pay-icon">⚡</span>
+            <span class="pay-label">Link</span>
+            <span class="pay-badge">1-CLICK</span>
           </button>
         </div>
-        <!-- Card form (shown when Card is selected) -->
-        <div id="cardForm" class="card-form hidden">
-          <input type="text" id="cardNumber" class="name-input" placeholder="Card number" maxlength="19" autocomplete="cc-number" inputmode="numeric" aria-label="Card number">
-          <div class="card-row">
-            <input type="text" id="cardExpiry" class="name-input" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp" inputmode="numeric" aria-label="Expiration date">
-            <input type="text" id="cardCvc" class="name-input" placeholder="CVC" maxlength="4" autocomplete="cc-csc" inputmode="numeric" aria-label="Security code">
-          </div>
-          <input type="text" id="cardZip" class="name-input" placeholder="ZIP code" maxlength="10" autocomplete="postal-code" inputmode="numeric" aria-label="ZIP code">
-        </div>
+        <p class="pay-secure-note">🔒 Secure checkout powered by Stripe. Card details entered on Stripe’s secure page.</p>
         <button class="btn btn-premium" id="btnSavePayment">SAVE & START PLAYING 🚀</button>
         <button class="btn-skip" id="btnSkipPayment">Skip for now — add later</button>
       </div>
@@ -1058,7 +1054,7 @@
       <div class="current-method" id="currentMethod"></div>
       <div class="payment-grid" id="paymentGrid">
         <button class="pay-option" data-method="apple_pay">
-          <span class="pay-icon"> Pay</span>
+          <span class="pay-icon"> Pay</span>
           <span class="pay-label">Apple Pay</span>
           <span class="pay-badge">INSTANT</span>
         </button>
@@ -1076,23 +1072,17 @@
           <span class="pay-label">Cash App</span>
           <span class="pay-badge pay-badge-hot">POPULAR</span>
         </button>
-        <button class="pay-option" data-method="paypal">
-          <span class="pay-icon">P</span>
-          <span class="pay-label">PayPal</span>
+        <button class="pay-option" data-method="amazon_pay">
+          <span class="pay-icon">a</span>
+          <span class="pay-label">Amazon Pay</span>
         </button>
-        <button class="pay-option" data-method="venmo">
-          <span class="pay-icon">V</span>
-          <span class="pay-label">Venmo</span>
+        <button class="pay-option" data-method="link">
+          <span class="pay-icon">⚡</span>
+          <span class="pay-label">Link</span>
+          <span class="pay-badge">1-CLICK</span>
         </button>
       </div>
-      <div id="cardFormModal" class="card-form hidden">
-        <input type="text" id="cardNumberModal" class="name-input" placeholder="Card number" maxlength="19" autocomplete="cc-number" inputmode="numeric" aria-label="Card number">
-        <div class="card-row">
-          <input type="text" id="cardExpiryModal" class="name-input" placeholder="MM/YY" maxlength="5" autocomplete="cc-exp" inputmode="numeric" aria-label="Expiration date">
-          <input type="text" id="cardCvcModal" class="name-input" placeholder="CVC" maxlength="4" autocomplete="cc-csc" inputmode="numeric" aria-label="Security code">
-        </div>
-        <input type="text" id="cardZipModal" class="name-input" placeholder="ZIP code" maxlength="10" autocomplete="postal-code" inputmode="numeric" aria-label="ZIP code">
-      </div>
+      <p class="pay-secure-note">🔒 Secure checkout powered by Stripe</p>
       <button class="btn btn-premium" id="btnUpdatePayment">UPDATE PAYMENT</button>
       <button class="btn-skip" id="btnClosePayment">Cancel</button>
     </div>
@@ -1122,6 +1112,10 @@
 
         <label class="withdraw-label">Send to</label>
         <div class="withdraw-method-grid">
+          <button class="withdraw-method-option" data-method="stripe_connect">
+            <span class="wm-icon">🏦</span>
+            <span class="wm-label">Bank</span>
+          </button>
           <button class="withdraw-method-option" data-method="paypal">
             <span class="wm-icon">P</span>
             <span class="wm-label">PayPal</span>
@@ -1134,6 +1128,12 @@
             <span class="wm-icon">V</span>
             <span class="wm-label">Venmo</span>
           </button>
+        </div>
+
+        <div id="stripeConnectWrap" class="hidden">
+          <div id="connectStatusMsg" class="connect-status-msg"></div>
+          <button class="btn btn-secondary connect-bank-btn" id="btnConnectBank">🔗 Connect Your Bank</button>
+          <button class="btn btn-link connect-dashboard-btn hidden" id="btnConnectDashboard">View Payout Dashboard</button>
         </div>
 
         <div id="withdrawHandleWrap" class="hidden">
@@ -1609,6 +1609,7 @@
     </div>
   </section>
 
+  <script src="https://js.stripe.com/v3/" async></script>
   <script src="/js/game.js" defer></script>
   <script src="/js/app.js" defer></script>
 </body>

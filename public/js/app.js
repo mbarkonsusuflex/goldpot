@@ -19,7 +19,7 @@
   let pendingFirstPurchaseBoost = false;
   let countdownInterval = null;
   let flashCountdownInterval = null;
-  let soundEnabled = true;
+  let soundEnabled = localStorage.getItem('goldpot_muted') !== 'true';
   let sessionStartTime = Date.now();
   let sessionGamesPlayed = 0;
   let sessionRewardTimers = { 5: false, 15: false, 30: false };
@@ -95,6 +95,16 @@
       o.type = 'sine'; o.frequency.setValueAtTime(440, t);
       g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
       o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.05);
+    },
+    alert() {
+      if (!soundEnabled) return;
+      const ctx = getAudio(); const t = ctx.currentTime;
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.setValueAtTime(660, t);
+      o.frequency.setValueAtTime(880, t + 0.1);
+      o.frequency.setValueAtTime(660, t + 0.2);
+      g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.3);
     },
     urgentTick() {
       if (!soundEnabled) return;
@@ -339,6 +349,17 @@
       history.replaceState({}, '', cleanUrl);
       setTimeout(() => showBonus('💚 Thank you for your donation! You rock!'), 1500);
     }
+    if (urlParams.get('connect_return') || urlParams.get('connect_refresh')) {
+      const cleanUrl = window.location.origin + window.location.pathname;
+      history.replaceState({}, '', cleanUrl);
+      if (urlParams.get('connect_return')) {
+        setTimeout(() => {
+          showBonus('🏦 Bank account setup complete!');
+          // Auto-open withdraw modal to show status
+          if ($('#btnWithdraw')) $('#btnWithdraw').click();
+        }, 1500);
+      }
+    }
     // Auto-fill referral code from URL ?ref=CODE
     const refFromUrl = urlParams.get('ref');
     if (refFromUrl) {
@@ -432,6 +453,8 @@
 
   function setupCanvas() {
     game = new GoldPotGame($('#gameCanvas'));
+    // Sync mute state from saved preference
+    if (game.setMuted) game.setMuted(!soundEnabled);
 
     // Mine game: onScore fires each dig with running total
     game.onScore = (totalGold) => {
@@ -850,6 +873,7 @@
       const stateVal = ($('#playerStateInput') ? $('#playerStateInput').value : '');
       const ref = ($('#refCodeInput').value.trim() || window._pendingRefCode || '').toUpperCase();
       if (!name) { $('#playerNameInput').focus(); return; }
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('Please enter a valid email address'); $('#playerEmailInput').focus(); return; }
       if (!stateVal) { $('#statePickerBtn').focus(); $('#statePickerBtn').click(); return; }
       // Register immediately
       const data = await api('register', { name, email: email || undefined, state: stateVal, referralCode: ref || undefined });
@@ -877,11 +901,11 @@
     });
 
     // ── Onboarding Step 2: Payment method selection ──
-    setupPaymentGrid('onboardPaymentGrid', 'cardForm');
+    setupPaymentGrid('onboardPaymentGrid');
 
     $('#btnSavePayment').addEventListener('click', async () => {
       if (!selectedPayMethod) { showBonus('Pick a payment method'); return; }
-      await savePaymentMethod('cardNumber', 'cardExpiry', 'cardCvc', 'cardZip');
+      await savePaymentMethod();
       closeModal('nameModal');
       showApp();
       track('onboarding_payment_completed', { method: selectedPayMethod });
@@ -905,15 +929,14 @@
       }
       // Reset selections
       $$('#paymentGrid .pay-option').forEach(o => o.classList.remove('selected'));
-      $('#cardFormModal').classList.add('hidden');
       openModal('paymentModal');
     });
 
-    setupPaymentGrid('paymentGrid', 'cardFormModal');
+    setupPaymentGrid('paymentGrid');
 
     $('#btnUpdatePayment').addEventListener('click', async () => {
       if (!selectedPayMethod) { showBonus('Pick a payment method'); return; }
-      await savePaymentMethod('cardNumberModal', 'cardExpiryModal', 'cardCvcModal', 'cardZipModal');
+      await savePaymentMethod();
       closeModal('paymentModal');
       showBonus('💳 Payment updated!');
     });
@@ -928,6 +951,7 @@
       selectedWithdrawMethod = null;
       $$('.withdraw-method-option').forEach(o => o.classList.remove('selected'));
       $('#withdrawHandleWrap').classList.add('hidden');
+      $('#stripeConnectWrap').classList.add('hidden');
       $('#withdrawHandleInput').value = '';
       $('#withdrawAmountInput').value = '';
       $('#withdrawForm').classList.remove('hidden');
@@ -952,13 +976,64 @@
         selectedWithdrawMethod = btn.dataset.method;
         $$('.withdraw-method-option').forEach(o => o.classList.remove('selected'));
         btn.classList.add('selected');
-        const labels = { paypal: 'PayPal email', cashapp: 'Cash App $cashtag', venmo: 'Venmo username' };
-        const placeholders = { paypal: 'you@email.com', cashapp: '$yourcashtag', venmo: '@yourusername' };
-        $('#withdrawHandleLabel').textContent = labels[selectedWithdrawMethod];
-        $('#withdrawHandleInput').placeholder = placeholders[selectedWithdrawMethod];
-        $('#withdrawHandleWrap').classList.remove('hidden');
-        setTimeout(() => $('#withdrawHandleInput').focus(), 100);
+        if (selectedWithdrawMethod === 'stripe_connect') {
+          $('#withdrawHandleWrap').classList.add('hidden');
+          $('#stripeConnectWrap').classList.remove('hidden');
+          checkConnectStatus();
+        } else {
+          $('#stripeConnectWrap').classList.add('hidden');
+          const labels = { paypal: 'PayPal email', cashapp: 'Cash App $cashtag', venmo: 'Venmo username' };
+          const placeholders = { paypal: 'you@email.com', cashapp: '$yourcashtag', venmo: '@yourusername' };
+          $('#withdrawHandleLabel').textContent = labels[selectedWithdrawMethod];
+          $('#withdrawHandleInput').placeholder = placeholders[selectedWithdrawMethod];
+          $('#withdrawHandleWrap').classList.remove('hidden');
+          setTimeout(() => $('#withdrawHandleInput').focus(), 100);
+        }
       });
+    });
+
+    async function checkConnectStatus() {
+      const res = await fetch('/api/connect-status', {
+        headers: { 'Authorization': 'Bearer ' + getAuthToken() },
+      });
+      const data = await res.json();
+      const msgEl = $('#connectStatusMsg');
+      const connectBtn = $('#btnConnectBank');
+      const dashBtn = $('#btnConnectDashboard');
+      if (data.connected) {
+        msgEl.textContent = '✅ Bank account connected — ready for payouts';
+        msgEl.className = 'connect-status-msg connected';
+        connectBtn.classList.add('hidden');
+        dashBtn.classList.remove('hidden');
+      } else if (data.detailsSubmitted) {
+        msgEl.textContent = '⏳ Account under review by Stripe';
+        msgEl.className = 'connect-status-msg pending';
+        connectBtn.textContent = '🔄 Update Info';
+        connectBtn.classList.remove('hidden');
+        dashBtn.classList.add('hidden');
+      } else {
+        msgEl.textContent = 'Connect your bank to receive instant payouts';
+        msgEl.className = 'connect-status-msg';
+        connectBtn.textContent = '🔗 Connect Your Bank';
+        connectBtn.classList.remove('hidden');
+        dashBtn.classList.add('hidden');
+      }
+    }
+
+    $('#btnConnectBank').addEventListener('click', async () => {
+      if (!player) return;
+      const res = await api('connect-account', { playerId: player.id });
+      if (res.url) {
+        window.location.href = res.url;
+      }
+    });
+
+    $('#btnConnectDashboard').addEventListener('click', async () => {
+      if (!player) return;
+      const res = await api('connect-dashboard', { playerId: player.id });
+      if (res.url) {
+        window.open(res.url, '_blank');
+      }
     });
 
     $('#btnWithdrawMax').addEventListener('click', async () => {
@@ -971,8 +1046,11 @@
     $('#btnSubmitWithdraw').addEventListener('click', async () => {
       if (!player) return;
       if (!selectedWithdrawMethod) { showError('Please select a withdrawal method'); return; }
-      const handle = $('#withdrawHandleInput').value.trim();
-      if (!handle || handle.length < 3) { showError('Please enter a valid account handle'); return; }
+      let handle = '';
+      if (selectedWithdrawMethod !== 'stripe_connect') {
+        handle = $('#withdrawHandleInput').value.trim();
+        if (!handle || handle.length < 3) { showError('Please enter a valid account handle'); return; }
+      }
       const amountStr = $('#withdrawAmountInput').value.trim();
       const amountDollars = parseFloat(amountStr);
       if (!amountDollars || amountDollars < 5) { showError('Minimum withdrawal is $5.00'); return; }
@@ -1193,6 +1271,20 @@
     $('#shareSMS').addEventListener('click', () => shareVia('sms'));
     $('#shareLink').addEventListener('click', () => shareVia('link'));
     $('#btnCopy').addEventListener('click', copyReferral);
+
+    // Logout
+    $('#logoutBtn').addEventListener('click', () => {
+      if (!confirm('Log out of GOLDPOT?')) return;
+      localStorage.removeItem('goldpot_player_id');
+      localStorage.removeItem('goldpot_token');
+      localStorage.removeItem('goldpot_verify_url');
+      if (pollTimer) clearInterval(pollTimer);
+      if (ws) { ws.close(); ws = null; }
+      player = null;
+      $('#app').classList.add('hidden');
+      showHeroScreen();
+    });
+
     const btnRefCopyLink = $('#btnRefCopyLink');
     if (btnRefCopyLink) btnRefCopyLink.addEventListener('click', () => {
       const refUrl = getReferralUrl();
@@ -1215,10 +1307,14 @@
     if (winShareCopy) winShareCopy.addEventListener('click', () => shareWin('copy', window._lastWinPrize, window._lastWinPot));
 
     // Mute toggle
+    $('#muteBtn').textContent = soundEnabled ? '🔊' : '🔇';
     $('#muteBtn').addEventListener('click', () => {
+      SFX.click(); // play feedback before toggling off
       soundEnabled = !soundEnabled;
+      localStorage.setItem('goldpot_muted', soundEnabled ? 'false' : 'true');
       $('#muteBtn').textContent = soundEnabled ? '🔊' : '🔇';
-      SFX.click();
+      // Sync to game engine
+      if (game && game.setMuted) game.setMuted(!soundEnabled);
     });
 
     // Flash pot entry
@@ -1848,33 +1944,22 @@
 
   // ─── Payment Helpers ─────────────────────────────────────────────────────
   const PAY_ICONS = {
-    apple_pay: ' Pay', google_pay: 'G Pay', card: '💳',
-    cashapp: '$', paypal: 'P', venmo: 'V'
+    apple_pay: ' Pay', google_pay: 'G Pay', card: '💳',
+    cashapp: '$', amazon_pay: 'a', link: '⚡'
   };
 
-  function setupPaymentGrid(gridId, cardFormId) {
+  function setupPaymentGrid(gridId) {
     $$(`#${gridId} .pay-option`).forEach(opt => {
       opt.addEventListener('click', () => {
         selectedPayMethod = opt.dataset.method;
         $$(`#${gridId} .pay-option`).forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
-        const cf = $(`#${cardFormId}`);
-        if (selectedPayMethod === 'card') {
-          cf.classList.remove('hidden');
-        } else {
-          cf.classList.add('hidden');
-        }
       });
     });
   }
 
-  async function savePaymentMethod(numId, expId, cvcId, zipId) {
-    let cardLast4 = null;
-    if (selectedPayMethod === 'card') {
-      const num = $(`#${numId}`).value.replace(/\s/g, '');
-      if (num.length >= 4) cardLast4 = num.slice(-4);
-    }
-    const res = await api('payment-method', { playerId: player.id, method: selectedPayMethod, cardLast4 });
+  async function savePaymentMethod() {
+    const res = await api('payment-method', { playerId: player.id, method: selectedPayMethod });
     if (res.player) player = res.player;
     if (res.paymentMethod) player.paymentMethod = res.paymentMethod;
     track('payment_saved_client', { method: selectedPayMethod });
@@ -1956,7 +2041,7 @@
     const btn = $('#btnNextAction');
     if (text && btn) {
       if (!hasPayment) {
-        text.textContent = 'Step 1: Enter FREE below, or add a payment method for $1 plays with bonus entries.';
+        text.textContent = 'Step 1: Tap FREE ENTRY below to play free, or add a payment method to unlock $1 plays with bonus entries.';
         btn.textContent = 'ADD PAYMENT (OPTIONAL)';
       } else if (!firstPurchaseDone) {
         text.textContent = 'Step 2: Play your first game! Your entry goes into the pot — when it fills, a winner is drawn.';
@@ -4377,26 +4462,24 @@
     gold: '0 0 10px rgba(240,192,64,0.6)',
   };
 
-  // Chat notification sound (short blip)
-  const chatNotifSound = (function() {
+  // Chat notification sound (short blip) — uses shared AudioContext
+  function chatNotifSound() {
+    if (!chatSoundEnabled || !soundEnabled) return;
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      return function() {
-        if (!chatSoundEnabled) return;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.12);
-        gain.gain.setValueAtTime(0.08, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.15);
-      };
-    } catch { return function() {}; }
-  })();
+      const ctx = getAudio();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.15);
+    } catch { /* ignore audio errors */ }
+  }
 
   function getChatColor(name) {
     let h = 0;
