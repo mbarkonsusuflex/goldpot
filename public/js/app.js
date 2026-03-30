@@ -411,6 +411,10 @@
   async function showHeroScreen() {
     const hero = $('#heroScreen');
     hero.classList.remove('hidden');
+    // Hide chat on login screen
+    var cs = $('#chatSidebar'); if (cs) cs.classList.add('hidden');
+    var ce = $('#chatExpandBtn'); if (ce) ce.classList.add('hidden');
+    var cb = $('#chatBubble'); if (cb) cb.classList.add('hidden');
     // Fetch state to populate hero with live data
     try {
       const st = await api('state');
@@ -2487,6 +2491,8 @@
     connectWebSocket();
     startSessionTimer();
     subscribeToPush();
+    // Show chat after login
+    var cs = $('#chatSidebar'); if (cs) cs.classList.remove('hidden');
     initChat();
     initDuelUI();
     fetchDuels();
