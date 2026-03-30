@@ -3,4 +3,4 @@ Allow: /
 Disallow: /api/
 Disallow: /api/admin/
 
-Sitemap: https://goldpot.us/sitemap.xml
+Sitemap: https://www.goldpot.us/sitemap.xml

@@ -17,7 +17,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
 }
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 const DEMO_MODE = process.env.DEMO_MODE === 'true'; // bots OFF by default, set DEMO_MODE=true to enable
-const CANONICAL_HOST = (process.env.CANONICAL_HOST || 'goldpot.us').toLowerCase();
+const CANONICAL_HOST = (process.env.CANONICAL_HOST || 'www.goldpot.us').toLowerCase();
 if (DEMO_MODE && process.env.NODE_ENV === 'production') {
   throw new Error('DEMO_MODE must not be enabled in production');
 }

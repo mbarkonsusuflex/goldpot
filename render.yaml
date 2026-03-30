@@ -31,4 +31,4 @@ services:
       - key: DEMO_MODE
         value: "false"
       - key: CANONICAL_HOST
-        value: goldpot.us
+        value: www.goldpot.us
