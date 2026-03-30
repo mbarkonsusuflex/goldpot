@@ -1192,7 +1192,8 @@
       }
     });
 
-    $('#btnNextAction').addEventListener('click', () => {
+    const btnNextAction = $('#btnNextAction');
+    if (btnNextAction) btnNextAction.addEventListener('click', () => {
       if (!player) return;
       const step = !player.paymentMethod ? 'add_payment' : ((player.totalSpent || 0) === 0 ? 'first_play' : 'play_again');
       track('guided_next_action_click', { step, totalSpent: player.totalSpent || 0 });
@@ -4244,7 +4245,8 @@
     updateOnboardDots(1);
     selectedPayMethod = null;
     $$('#onboardPaymentGrid .pay-option').forEach(o => o.classList.remove('selected'));
-    $('#cardForm').classList.add('hidden');
+    const cardForm = $('#cardForm');
+    if (cardForm) cardForm.classList.add('hidden');
     openModal('nameModal');
     // Auto-fill referral code from URL ?ref= param
     if (window._pendingRefCode) {
