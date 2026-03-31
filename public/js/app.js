@@ -2006,7 +2006,9 @@
     // Show odds preview
     const potEntries = pot ? pot.totalEntries : 0;
     const myEntries = player.entries[currentPot] || 0;
-    const newOdds = potEntries > 0 ? ((myEntries + qty) / (potEntries + qty) * 100).toFixed(1) : '100.0';
+    const drawThreshold = pot ? (pot.drawThreshold || 50000) : 50000;
+    const projectedTotal = Math.max(potEntries + qty, drawThreshold / 100);
+    const newOdds = ((myEntries + qty) / projectedTotal * 100).toFixed(1);
     const drawAmt = pot ? (pot.drawThreshold / 100).toFixed(0) : '25';
     const oddsEl = $('#checkoutOdds');
     if (oddsEl) {
