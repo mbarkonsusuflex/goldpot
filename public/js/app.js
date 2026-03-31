@@ -453,6 +453,8 @@
     $('#btnHeroJoin').addEventListener('click', () => {
       hero.classList.add('hidden');
       track('onboarding_shown');
+      // Show app container so modals inside it are visible (app content stays hidden via individual sections)
+      $('#app').classList.remove('hidden');
       showNameModal();
     });
   }
