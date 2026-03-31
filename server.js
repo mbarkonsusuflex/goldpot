@@ -170,7 +170,7 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '0');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://js.stripe.com https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' wss: ws: https://fonts.googleapis.com https://fonts.gstatic.com https://api.stripe.com https://pagead2.googlesyndication.com; frame-src https://js.stripe.com; frame-ancestors 'none'");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://js.stripe.com https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' wss: ws: https://fonts.googleapis.com https://fonts.gstatic.com https://api.stripe.com https://pagead2.googlesyndication.com https://ep1.adtrafficquality.google; frame-src https://js.stripe.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com; frame-ancestors 'none'");
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('X-DNS-Prefetch-Control', 'off');
   res.setHeader('X-Download-Options', 'noopen');
@@ -4331,52 +4331,233 @@ app.get('/api/responsible-gaming', (req, res) => {
 });
 
 // ─── Legal Pages ────────────────────────────────────────────────────────────
-const legalPage = (title, content) => `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} — GoldPot</title><link rel="stylesheet" href="/css/style.css"><style>body{padding:20px;max-width:700px;margin:0 auto}.legal-back{color:var(--gold);text-decoration:none;font-size:0.85rem}.legal-back:hover{text-decoration:underline}h1{font-family:var(--font-display);color:var(--gold);font-size:1.5rem;margin:20px 0 16px}h2{color:var(--white);font-size:1rem;margin:18px 0 8px}p,li{font-size:0.82rem;line-height:1.6;color:var(--text2);margin-bottom:8px}ul{padding-left:20px}</style></head><body><a href="/" class="legal-back">← Back to GoldPot</a>${content}<p style="margin-top:30px;font-size:0.7rem;color:var(--text3)">Last updated: March 2026 · © 2026 GoldPot Inc.</p></body></html>`;
+const legalPage = (title, content) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${title} — GoldPot</title>
+  <style>
+    :root {
+      --bg: #0d0a06;
+      --surface: #1a1508;
+      --surface2: #231c0e;
+      --border: #2e2510;
+      --gold: #d4a017;
+      --gold-light: #f5d060;
+      --white: #f5f0e6;
+      --text: #e8dcc8;
+      --text2: #b8a88a;
+      --text3: #7a6c52;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-display: 'Playfair Display', Georgia, serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    .legal-wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 24px 60px;
+    }
+    .legal-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--gold);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 8px 0;
+      transition: opacity 0.2s;
+    }
+    .legal-back:hover { opacity: 0.8; text-decoration: underline; }
+    h1 {
+      font-family: var(--font-display);
+      color: var(--gold);
+      font-size: 1.75rem;
+      margin: 28px 0 8px;
+      letter-spacing: 0.5px;
+    }
+    .legal-subtitle {
+      color: var(--text3);
+      font-size: 0.78rem;
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    h2 {
+      color: var(--gold-light);
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 32px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 {
+      color: var(--white);
+      font-size: 0.92rem;
+      font-weight: 600;
+      margin: 18px 0 8px;
+    }
+    p {
+      font-size: 0.85rem;
+      line-height: 1.75;
+      color: var(--text2);
+      margin-bottom: 12px;
+    }
+    ul, ol {
+      padding-left: 22px;
+      margin-bottom: 14px;
+    }
+    li {
+      font-size: 0.85rem;
+      line-height: 1.7;
+      color: var(--text2);
+      margin-bottom: 6px;
+    }
+    li b { color: var(--white); }
+    code {
+      background: var(--surface2);
+      color: var(--gold-light);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.82rem;
+    }
+    a { color: var(--gold); }
+    .legal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 14px 0;
+    }
+    .legal-card h3 { margin-top: 0; }
+    .legal-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 18px;
+      font-size: 0.83rem;
+    }
+    .legal-table th {
+      text-align: left;
+      color: var(--gold-light);
+      font-weight: 600;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .legal-table td {
+      color: var(--text2);
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .legal-table tr:last-child td { border-bottom: none; }
+    .legal-footer {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 0.72rem;
+      color: var(--text3);
+    }
+    @media (max-width: 480px) {
+      .legal-wrap { padding: 20px 16px 48px; }
+      h1 { font-size: 1.4rem; }
+      h2 { font-size: 0.95rem; }
+      .legal-table { font-size: 0.78rem; }
+      .legal-table th, .legal-table td { padding: 6px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="legal-wrap">
+    <a href="/" class="legal-back">← Back to GoldPot</a>
+    ${content}
+    <p class="legal-footer">Last updated: March 2026 · © 2026 GoldPot Inc.</p>
+  </div>
+</body>
+</html>`;
 
 app.get('/rules', (req, res) => {
   res.send(legalPage('Official Rules', `
     <h1>OFFICIAL RULES</h1>
+    <p class="legal-subtitle">GoldPot Sweepstakes — No Purchase Necessary</p>
 
     <h2>1. Eligibility</h2>
-    <p>Open to legal residents of the 50 United States and D.C., 18 years of age or older. Void where prohibited or restricted by law. Residents of states that prohibit or require registration for sweepstakes with prizes above applicable thresholds may be ineligible. It is your responsibility to verify that participation is lawful in your jurisdiction.</p>
+    <p>Open to legal residents of the 50 United States and D.C., 18 years of age or older. Void where prohibited or restricted by law. It is your responsibility to verify that participation is lawful in your jurisdiction.</p>
 
-    <h2>2. No Purchase Necessary — Free Method of Entry</h2>
-    <p>NO PURCHASE OR PAYMENT IS NECESSARY TO ENTER OR WIN. A free method of entry is available via the "FREE ENTRY" button — one (1) free entry per pot per round. Free entries and paid entries carry equal weight in the drawing: each individual entry has an equal chance of being selected.</p>
-    <p>However, purchasing additional entries increases the total number of entries associated with your account and therefore increases your statistical likelihood of winning relative to participants with fewer entries. The odds of winning depend on the total number of entries received in each drawing.</p>
+    <h2>2. No Purchase Necessary</h2>
+    <p>NO PURCHASE OR PAYMENT IS NECESSARY TO ENTER OR WIN. A free method of entry is available via the "FREE ENTRY" button — one (1) free entry per pot per round.</p>
+    <p>Free entries and paid entries carry equal weight in the drawing. However, purchasing additional entries increases your total count and therefore your statistical likelihood of winning.</p>
 
     <h2>3. Promotion Period</h2>
-    <p>GoldPot operates as an ongoing sweepstakes. Each individual drawing ("round") begins when the previous round ends and continues until either (a) the pot reaches its draw threshold or (b) the countdown timer for that pot expires, whichever occurs first. The Sponsor reserves the right to discontinue the promotion at any time with reasonable notice posted on the platform.</p>
+    <p>GoldPot operates as an ongoing sweepstakes. Each drawing ("round") begins when the previous round ends and continues until the pot reaches its draw threshold or the countdown timer expires, whichever occurs first. The Sponsor reserves the right to discontinue the promotion with reasonable notice.</p>
 
     <h2>4. How to Enter</h2>
-    <p><b>Standard Pots (Mini, Gold, Mega):</b></p>
-    <ul>
-      <li><b>Free Entry:</b> One (1) free entry per pot per round, no purchase required.</li>
-      <li><b>Premium Entry:</b> Play the Deep Gold mini-game. Base price is $1.00 per entry. Bundle discounts are available: 5x for $4 (20% off), 10x for $7 (30% off), 25x for $15 (40% off), 50x for $25 (50% off), 100x for $40 (60% off).</li>
-      <li><b>Bonus Entries:</b> Additional entries may be earned at no cost via daily login bonus, spin wheel, ad viewing, referrals, session time rewards, and mission/milestone completion.</li>
-    </ul>
-    <p><b>Jackpot Drawings (Silver, Gold, Platinum, Diamond):</b></p>
-    <ul>
-      <li>Entry price varies by tier: Silver $2/entry, Gold $3/entry, Platinum &amp; Diamond $5/entry.</li>
-      <li>Jackpots draw when the pot reaches its threshold or when the timer expires.</li>
-    </ul>
-    <p><b>Flash Pots:</b></p>
-    <ul>
-      <li>Short-duration drawings (5 minutes). $0.50 per entry or free entries may be available.</li>
-    </ul>
-    <p><b>Additional Entry Methods:</b></p>
-    <ul>
-      <li><b>Mystery Box:</b> Bronze ($3), Silver ($5), or Gold ($10) — awards a random number of entries based on rarity tier (Common, Rare, or Legendary).</li>
-      <li><b>Lightning Deal:</b> Time-limited discounted entry bundles (30–70% off, 90-second window).</li>
-      <li><b>Limited Edition Drop:</b> Exclusive bulk entry packs with limited stock, refreshed periodically.</li>
-      <li><b>All-In Pack:</b> 5 entries to each of the 3 standard pots (15 total) for $5.</li>
-      <li><b>Double Down:</b> After a purchase, option to double your entries for 50% of the original price.</li>
-      <li><b>Power Surge:</b> $2.99 — activates a 2x multiplier on your next purchase for 1 hour.</li>
-      <li><b>Mega Multiplier:</b> $4.99 — activates a 5x multiplier for 30 minutes.</li>
-      <li><b>Streak Saver:</b> $1.99 — protects your login streak from resetting.</li>
-    </ul>
+
+    <div class="legal-card">
+      <h3>Standard Pots (Mini, Gold, Mega)</h3>
+      <ul>
+        <li><b>Free Entry:</b> One (1) free entry per pot per round, no purchase required.</li>
+        <li><b>Premium Entry:</b> Play the Deep Gold mini-game. Base price is $1.00 per entry.</li>
+        <li><b>Bonus Entries:</b> Earned at no cost via daily login bonus, spin wheel, ad viewing, referrals, session time rewards, and mission/milestone completion.</li>
+      </ul>
+      <p><b>Bundle Discounts:</b></p>
+      <table class="legal-table">
+        <tr><th>Quantity</th><th>Price</th><th>Savings</th></tr>
+        <tr><td>5 entries</td><td>$4.00</td><td>20% off</td></tr>
+        <tr><td>10 entries</td><td>$7.00</td><td>30% off</td></tr>
+        <tr><td>25 entries</td><td>$15.00</td><td>40% off</td></tr>
+        <tr><td>50 entries</td><td>$25.00</td><td>50% off</td></tr>
+        <tr><td>100 entries</td><td>$40.00</td><td>60% off</td></tr>
+      </table>
+    </div>
+
+    <div class="legal-card">
+      <h3>Jackpot Drawings</h3>
+      <table class="legal-table">
+        <tr><th>Tier</th><th>Entry Price</th></tr>
+        <tr><td>Silver</td><td>$2 / entry</td></tr>
+        <tr><td>Gold</td><td>$3 / entry</td></tr>
+        <tr><td>Platinum</td><td>$5 / entry</td></tr>
+        <tr><td>Diamond</td><td>$5 / entry</td></tr>
+      </table>
+      <p>Jackpots draw when the pot reaches its threshold or when the timer expires.</p>
+    </div>
+
+    <div class="legal-card">
+      <h3>Flash Pots</h3>
+      <p>Short-duration drawings (5 minutes). $0.50 per entry or free entries may be available.</p>
+    </div>
+
+    <div class="legal-card">
+      <h3>Additional Entry Methods</h3>
+      <ul>
+        <li><b>Mystery Box:</b> Bronze ($3), Silver ($5), or Gold ($10) — awards a random number of entries based on rarity tier (Common, Rare, or Legendary).</li>
+        <li><b>Lightning Deal:</b> Time-limited discounted entry bundles (30–70% off, 90-second window).</li>
+        <li><b>Limited Edition Drop:</b> Exclusive bulk entry packs with limited stock, refreshed periodically.</li>
+        <li><b>All-In Pack:</b> 5 entries to each of the 3 standard pots (15 total) for $5.</li>
+        <li><b>Double Down:</b> After a purchase, option to double your entries for 50% of the original price.</li>
+        <li><b>Power Surge:</b> $2.99 — 2x multiplier on your next purchase for 1 hour.</li>
+        <li><b>Mega Multiplier:</b> $4.99 — 5x multiplier for 30 minutes.</li>
+        <li><b>Streak Saver:</b> $1.99 — protects your login streak from resetting.</li>
+      </ul>
+    </div>
 
     <h2>5. VIP Pass</h2>
-    <p>Optional VIP subscription: Weekly ($4.99/week) or Monthly ($14.99/month). VIP benefits include increased daily bonus multiplier, higher daily ad-entry limits, automatic streak shield, and VIP badge. VIP status does not change the odds per entry — it provides convenience and bonus entry opportunities.</p>
+    <p>Optional VIP subscription with enhanced benefits:</p>
+    <table class="legal-table">
+      <tr><th>Plan</th><th>Price</th></tr>
+      <tr><td>Weekly</td><td>$4.99 / week</td></tr>
+      <tr><td>Monthly</td><td>$14.99 / month</td></tr>
+    </table>
+    <p>VIP benefits include increased daily bonus multiplier, higher daily ad-entry limits, automatic streak shield, and VIP badge. VIP status does not change the odds per entry — it provides convenience and bonus entry opportunities.</p>
 
     <h2>6. Drawing &amp; Winner Selection</h2>
     <p>Winners are selected by cryptographically secure random drawing (Node.js <code>crypto.randomInt</code>) from all eligible entries in the applicable pot or jackpot. Each entry carries equal weight regardless of how it was obtained (free, premium, bonus, referral, etc.).</p>
@@ -4385,13 +4566,24 @@ app.get('/rules', (req, res) => {
     <p>Odds depend on the total number of entries received for each drawing. Your odds equal (your entries) ÷ (total entries in that pot). Odds cannot be determined in advance because total entries vary per round.</p>
 
     <h2>8. Prizes</h2>
-    <ul>
-      <li><b>Mini Pot:</b> Draws when pot reaches $25. Prize = pot value after 18% operational fee.</li>
-      <li><b>Gold Pot:</b> Draws when pot reaches $100. Prize = pot value after 18% operational fee.</li>
-      <li><b>Mega Pot:</b> Draws when pot reaches $500. Prize = pot value after 18% operational fee.</li>
-      <li><b>Jackpots:</b> Silver up to $1,000 · Gold up to $10,000 · Platinum up to $50,000 · Diamond up to $250,000. If a jackpot timer expires before the threshold is reached, the actual pot value is awarded.</li>
-      <li><b>Flash Pot:</b> Prize equals the total pot value at expiry, after operational fee.</li>
-    </ul>
+    <table class="legal-table">
+      <tr><th>Pot</th><th>Draw Threshold</th><th>Prize</th></tr>
+      <tr><td>Mini Pot</td><td>$25</td><td>Pot value after 18% fee</td></tr>
+      <tr><td>Gold Pot</td><td>$100</td><td>Pot value after 18% fee</td></tr>
+      <tr><td>Mega Pot</td><td>$500</td><td>Pot value after 18% fee</td></tr>
+      <tr><td>Flash Pot</td><td>Timer expiry</td><td>Pot value after 18% fee</td></tr>
+    </table>
+    <div class="legal-card">
+      <h3>Jackpot Prizes</h3>
+      <table class="legal-table">
+        <tr><th>Tier</th><th>Up To</th></tr>
+        <tr><td>Silver</td><td>$1,000</td></tr>
+        <tr><td>Gold</td><td>$10,000</td></tr>
+        <tr><td>Platinum</td><td>$50,000</td></tr>
+        <tr><td>Diamond</td><td>$250,000</td></tr>
+      </table>
+      <p>If a jackpot timer expires before the threshold is reached, the actual pot value is awarded.</p>
+    </div>
     <p>An 18% operational fee is deducted from all pots to fund platform operations, prize fulfillment, and maintenance. Prizes over $600 are subject to IRS reporting (Form 1099). Winners are solely responsible for all applicable federal, state, and local taxes.</p>
 
     <h2>9. Winner Notification &amp; Prize Claims</h2>
@@ -4411,6 +4603,7 @@ app.get('/rules', (req, res) => {
 app.get('/privacy', (req, res) => {
   res.send(legalPage('Privacy Policy', `
     <h1>PRIVACY POLICY</h1>
+    <p class="legal-subtitle">How we collect, use, and protect your data</p>
 
     <h2>1. Information We Collect</h2>
     <ul>
@@ -4462,6 +4655,7 @@ app.get('/privacy', (req, res) => {
 app.get('/terms', (req, res) => {
   res.send(legalPage('Terms of Service', `
     <h1>TERMS OF SERVICE</h1>
+    <p class="legal-subtitle">By using GoldPot, you agree to these terms</p>
 
     <h2>1. Acceptance</h2>
     <p>By accessing or using GoldPot, you agree to be bound by these Terms of Service and our Official Rules and Privacy Policy, which are incorporated by reference. If you do not agree, do not use the service.</p>
@@ -4517,6 +4711,7 @@ app.get('/terms', (req, res) => {
 app.get('/responsible-gaming', (req, res) => {
   res.send(legalPage('Responsible Gaming', `
     <h1>RESPONSIBLE GAMING</h1>
+    <p class="legal-subtitle">Your well-being matters to us</p>
 
     <h2>Play for Fun, Not to Solve Problems</h2>
     <p>GoldPot is designed to be entertaining. If sweepstakes participation is no longer fun or is causing stress, it may be time to take a break.</p>

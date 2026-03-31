@@ -1,4 +1,4 @@
-const CACHE_VERSION = '2';
+const CACHE_VERSION = '3';
 const CACHE_NAME = 'goldpot-v' + CACHE_VERSION;
 const STATIC_ASSETS = [
   '/',
@@ -30,6 +30,9 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+
+  // Only handle same-origin requests — skip third-party (Stripe, Google Ads, fonts, etc.)
+  if (!request.url.startsWith(self.location.origin)) return;
 
   // Network-first for API calls
   if (request.url.includes('/api/')) {
