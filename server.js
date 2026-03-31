@@ -5161,11 +5161,12 @@ function startServer(port) {
         // Reject oversized messages (stream frames up to 64KB, others max 1KB)
         const maxSize = 65536;
         if (data.length > maxSize) { ws.close(1009, 'Message too large'); return; }
-        wsMsgCount++;
-        if (wsMsgCount > 20) { ws.close(1008, 'Rate limit exceeded'); return; }
         // Parse and route message
         try {
           const parsed = JSON.parse(data);
+          // Exempt stream frames from general rate limit (they have their own interval)
+          if (parsed.type !== 'stream_frame') wsMsgCount++;
+          if (wsMsgCount > 20) { ws.close(1008, 'Rate limit exceeded'); return; }
           if (parsed.type === 'chat') {
             // Per-user chat rate limit
             if (!ws._chatTimes) ws._chatTimes = [];

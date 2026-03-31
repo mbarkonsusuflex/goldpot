@@ -6193,14 +6193,14 @@
     // Broadcast every 200ms (5fps) — low bandwidth canvas snapshots
     streamFrameInterval = setInterval(() => {
       if (!myStreamId || !ws || ws.readyState !== 1) return;
-      const canvas = document.querySelector('#gameOverlay canvas') || document.querySelector('.game-canvas');
+      const canvas = document.querySelector('#gameCanvas');
       if (!canvas) return;
       try {
         const frame = canvas.toDataURL('image/jpeg', 0.3);
         const scoreEl = $('#mineGold');
         ws.send(JSON.stringify({ type: 'stream_frame', streamId: myStreamId, frame, score: scoreEl ? scoreEl.textContent : '0' }));
       } catch {}
-    }, 200);
+    }, 500);
     // Tell server we're playing
     api('stream-playing', { playerId: player.id, streamId: myStreamId, isPlaying: true });
   }
