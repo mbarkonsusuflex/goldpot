@@ -73,7 +73,7 @@
   <div id="splash" class="splash">
     <div class="splash-inner">
       <div class="logo-video-wrap splash-logo-video">
-        <video class="logo-video" autoplay muted playsinline loop aria-hidden="true">
+        <video class="logo-video" autoplay muted playsinline loop aria-hidden="true" poster="/img/gold-pot-logo-favicon.png">
           <source src="/img/gold-pot-logo.mp4" type="video/mp4">
         </video>
       </div>
@@ -86,7 +86,7 @@
   <div id="heroScreen" class="hero-screen hidden">
     <div class="hero-inner">
       <div class="logo-video-wrap hero-logo-video">
-        <video class="logo-video" autoplay muted playsinline loop aria-hidden="true">
+        <video class="logo-video" autoplay muted playsinline loop aria-hidden="true" poster="/img/gold-pot-logo-favicon.png">
           <source src="/img/gold-pot-logo.mp4" type="video/mp4">
         </video>
       </div>
@@ -124,13 +124,13 @@
   </div>
 
   <!-- ═══ MAIN APP ═══ -->
-  <div id="app" class="app hidden" role="main">
+  <main id="app" class="app hidden">
 
     <!-- TOP BAR -->
     <header class="top-bar">
       <div class="top-left">
         <div class="logo-video-wrap topbar-logo-video">
-          <video class="logo-video" autoplay muted playsinline loop aria-hidden="true">
+          <video class="logo-video" autoplay muted playsinline loop aria-hidden="true" poster="/img/gold-pot-logo-favicon.png">
             <source src="/img/gold-pot-logo.mp4" type="video/mp4">
           </video>
         </div>
@@ -233,12 +233,12 @@
 
     <!-- POT TABS -->
     <section class="pot-tabs-section">
-      <div class="pot-tabs" id="potTabs">
-        <button class="pot-tab active" data-pot="mini"><span class="pot-tab-dot" style="background:#60c0ff"></span>MINI</button>
-        <button class="pot-tab" data-pot="gold"><span class="pot-tab-dot" style="background:#f0c040"></span>GOLD</button>
-        <button class="pot-tab" data-pot="mega"><span class="pot-tab-dot" style="background:#ff6090"></span>MEGA</button>
-        <button class="pot-tab flash-tab hidden" data-pot="flash" id="flashTab"><span class="pot-tab-dot" style="background:#ff8040"></span>⚡ FLASH</button>
-        <button class="pot-tab jackpot-tab hidden" data-pot="jackpot" id="jackpotTab"><span class="pot-tab-dot" style="background:#b0e0ff"></span>💎 JACKPOT</button>
+      <div class="pot-tabs" id="potTabs" role="tablist">
+        <button class="pot-tab active" data-pot="mini" role="tab" aria-selected="true"><span class="pot-tab-dot" style="background:#60c0ff"></span>MINI</button>
+        <button class="pot-tab" data-pot="gold" role="tab" aria-selected="false"><span class="pot-tab-dot" style="background:#f0c040"></span>GOLD</button>
+        <button class="pot-tab" data-pot="mega" role="tab" aria-selected="false"><span class="pot-tab-dot" style="background:#ff6090"></span>MEGA</button>
+        <button class="pot-tab flash-tab hidden" data-pot="flash" id="flashTab" role="tab" aria-selected="false"><span class="pot-tab-dot" style="background:#ff8040"></span>⚡ FLASH</button>
+        <button class="pot-tab jackpot-tab hidden" data-pot="jackpot" id="jackpotTab" role="tab" aria-selected="false"><span class="pot-tab-dot" style="background:#b0e0ff"></span>💎 JACKPOT</button>
       </div>
     </section>
 
@@ -341,7 +341,7 @@
       </div>
       <!-- Collapsible buy-more section -->
       <button class="btn-show-bundles" id="btnShowBundles" aria-expanded="false" aria-controls="bundleGroup">
-        � Donate More <span class="chevron">▼</span>
+        💰 Donate More <span class="chevron">▼</span>
       </button>
       <div class="bundle-group" id="bundleGroup">
         <div class="btn-row">
@@ -1389,7 +1389,7 @@
   </div>
 
   <!-- COSMETICS SHOP MODAL -->
-  <div id="cosmeticsModal" class="modal hidden">
+  <div id="cosmeticsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="cosmeticsTitle">
     <div class="modal-backdrop"></div>
     <div class="modal-content cosmetics-modal">
       <h2 class="cosmetics-title">✨ CHAT COSMETICS SHOP</h2>
@@ -1490,7 +1490,7 @@
   </section>
 
   <!-- DUEL RESULT MODAL -->
-  <div id="duelResultModal" class="modal hidden">
+  <div id="duelResultModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="duelResultTitle">
     <div class="modal-backdrop"></div>
     <div class="modal-content duel-result-modal">
       <div class="duel-result-icon" id="duelResultIcon">🏆</div>
@@ -1608,6 +1608,7 @@
       </div>
     </div>
   </section>
+  </main>
 
   <script src="https://js.stripe.com/v3/" async></script>
   <script src="/js/game.js" defer></script>

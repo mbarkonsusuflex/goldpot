@@ -271,6 +271,8 @@
   }
 
   function showError(msg) {
+    // Remove any existing error toasts to prevent stacking
+    document.querySelectorAll('.error-toast').forEach(t => t.remove());
     const el = document.createElement('div');
     el.className = 'error-toast';
     el.textContent = msg;
@@ -1144,8 +1146,9 @@
         currentPot = tab.dataset.pot;
         _urgencyNudgeShown = false;
         _criticalNudgeShown = false;
-        $$('.pot-tab').forEach(t => t.classList.remove('active'));
+        $$('.pot-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
         tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
         renderPot();
       });
     });
@@ -1153,14 +1156,24 @@
     // Premium button — donate $1 to current pot (pre-launch mode)
     $('#btnPremium').addEventListener('click', async () => {
       if (!player) return;
+      const btn = $('#btnPremium');
+      if (btn.disabled) return;
+      btn.disabled = true;
+      const origText = btn.textContent;
+      btn.textContent = '⏳ Processing...';
       SFX.click();
-      const name = player ? player.name : 'Anonymous';
-      const res = await api('donate', { amount: 100, name, potId: currentPot });
-      if (res && res.demo) {
-        showBonus('💚 $1 added to the ' + (currentPot || 'gold').toUpperCase() + ' pot!');
-        fetchState();
-      } else if (res && res.url) {
-        window.location.href = res.url;
+      try {
+        const name = player ? player.name : 'Anonymous';
+        const res = await api('donate', { amount: 100, name, potId: currentPot });
+        if (res && res.demo) {
+          showBonus('💚 $1 added to the ' + (currentPot || 'gold').toUpperCase() + ' pot!');
+          fetchState();
+        } else if (res && res.url) {
+          window.location.href = res.url;
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = origText;
       }
     });
 
@@ -4303,6 +4316,13 @@
     _openModalId = null;
     if (_modalReturnFocus) { try { _modalReturnFocus.focus(); } catch(e){} _modalReturnFocus = null; }
   }
+
+  // Escape key closes open modals (except critical ones)
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && _openModalId && !_criticalModals.includes(_openModalId)) {
+      closeModal(_openModalId);
+    }
+  });
 
   // Q29-30: backdrop click to close (except critical modals)
   document.addEventListener('click', function(e) {

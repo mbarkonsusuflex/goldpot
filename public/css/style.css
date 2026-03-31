@@ -17,7 +17,7 @@
   --white: #ffffff;
   --text: #e8e8f0;
   --text2: #9898b0;
-  --text3: #8888a8;
+  --text3: #9696b4;
   --green: #40e070;
   --red: #ff4060;
   --purple: #b060ff;
@@ -85,12 +85,12 @@ body {
   position: absolute;
   top: 8px; right: 8px;
   z-index: 10;
-  width: 36px; height: 36px;
+  width: 44px; height: 44px;
   border: none;
   border-radius: 50%;
   background: rgba(255,255,255,0.08);
   color: var(--text3);
-  font-size: 0.9rem;
+  font-size: 1rem;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.2s, color 0.2s, transform 0.2s;
@@ -298,7 +298,7 @@ button:focus:not(:focus-visible) { outline: none; }
   width: 100%; font-size: 1.1rem; padding: 16px; margin-bottom: 12px;
 }
 .hero-fine {
-  font-size: 0.65rem; color: var(--text3); line-height: 1.5;
+  font-size: 0.72rem; color: var(--text2); line-height: 1.5;
 }
 .hero-fine a { color: var(--text2); }
 
@@ -513,6 +513,11 @@ body {
   body {
     padding-left: 0;
     padding-right: 0;
+  }
+}
+@media (max-width: 768px) and (min-width: 601px) {
+  body {
+    padding-left: 20px;
   }
 }
 
@@ -1891,8 +1896,8 @@ body {
 }
 .checkout-title { font-weight: 700; font-size: 0.9rem; color: var(--white); }
 .checkout-close {
-  background: var(--surface); border: none; color: var(--text3); width: 28px; height: 28px;
-  border-radius: 50%; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
+  background: var(--surface); border: none; color: var(--text3); width: 36px; height: 36px;
+  border-radius: 50%; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;
 }
 .checkout-details { text-align: center; margin-bottom: 12px; }
 .checkout-item { font-size: 0.8rem; color: var(--text2); margin-bottom: 4px; }
