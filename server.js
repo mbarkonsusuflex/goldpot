@@ -92,6 +92,13 @@ function addPushSubscription(playerId, subscription) {
 
 // ─── Timing-safe admin secret check with IP lockout ─────────────────────────
 const adminFailures = new Map(); // ip -> { count, lockedUntil }
+// Cleanup stale admin failure entries every 30 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of adminFailures) {
+    if (entry.lockedUntil && now > entry.lockedUntil) adminFailures.delete(ip);
+  }
+}, 30 * 60 * 1000);
 function verifyAdminSecret(provided, req) {
   const expected = process.env.ADMIN_SECRET;
   if (!expected || !provided) return false;
@@ -414,7 +421,8 @@ app.use('/api/', (req, res, next) => {
   // Routes that self-excluded users may still access
   const exemptPaths = [
     '/register', '/track-event', '/stripe-webhook', '/reauth', '/donate',
-    '/self-exclude', '/deposit-limit',          // responsible gaming
+    '/self-exclude', '/deposit-limit', '/set-deposit-limit', // responsible gaming
+    '/delete-account',                          // GDPR — must always work
     '/withdraw', '/kyc-submit',                 // cash-out & verification
     '/push-subscribe', '/resend-verification',  // account management
     '/cosmetic-equip',                          // cosmetic-only, no monetary value
@@ -1061,7 +1069,8 @@ const MISSION_TEMPLATES = [
 ];
 
 function generateMissions() {
-  const shuffled = [...MISSION_TEMPLATES].sort(() => Math.random() - 0.5);
+  const shuffled = [...MISSION_TEMPLATES];
+  for (let i = shuffled.length - 1; i > 0; i--) { const j = crypto.randomInt(i + 1); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
   return shuffled.slice(0, 3).map(t => ({ ...t, progress: 0, claimed: false }));
 }
 
@@ -1393,7 +1402,7 @@ app.post('/api/register', rateLimit(60000, 3), (req, res) => {
   const token = signToken(player.id, regIp);
   // Send verification email (async, don't block response)
   sendVerificationEmail(player).catch(() => {});
-  res.json({ player: sanitizePlayer(player), token, emailVerifyToken: player.emailVerifyToken });
+  res.json({ player: sanitizePlayer(player), token });
 });
 
 // ─── Email Verification ────────────────────────────────────────────────────
@@ -1952,6 +1961,7 @@ app.post('/api/game-bonus', rateLimit(10000, 5), (req, res) => {
     db.logSecurityEvent('warn', 'game', 'suspicious_score', {
       playerId, details: { score, sessionDuration, maxPlausible: maxPlausibleScore },
     });
+    return res.status(400).json({ error: 'Score exceeds plausible limit' });
   }
   let bonusEntries = 0;
   if (score >= 50) bonusEntries = 3;
@@ -2974,12 +2984,12 @@ function applyBattlePassReward(player, reward) {
   if (reward.mysteryBox) {
     const tier = MYSTERY_TIERS[reward.mysteryBox];
     if (tier) {
-      const roll = Math.random();
+      const roll = crypto.randomInt(1000) / 1000;
       let rarity, range;
       if (roll < 0.05) { rarity = 'legendary'; range = tier.legendary; }
       else if (roll < 0.30) { rarity = 'rare'; range = tier.rare; }
       else { rarity = 'common'; range = tier.common; }
-      const entries = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
+      const entries = crypto.randomInt(range[0], range[1] + 1);
       player.entries.gold = (player.entries.gold || 0) + entries;
       player.totalEntries += entries;
       for (let i = 0; i < entries; i++) state.pots.gold.entries.push({ playerId: player.id, timestamp: Date.now(), type: 'battlepass_box' });
@@ -3100,12 +3110,33 @@ app.post('/api/tournament-enter', rateLimit(30000, 3), (req, res) => {
 app.post('/api/tournament-score', rateLimit(5000, 10), (req, res) => {
   const player = getPlayer(req.body.playerId);
   if (!player) return res.status(404).json({ error: 'Player not found' });
+  // Require a valid, unexpired game session token — prevents fabricated scores
+  const gameSessionId = req.body.gameSessionId;
+  if (!gameSessionId || !player._activeGameSession || player._activeGameSession.id !== gameSessionId) {
+    return res.status(400).json({ error: 'No valid game session' });
+  }
+  const sessionDuration = Date.now() - player._activeGameSession.started;
+  if (sessionDuration < 10000) {
+    return res.status(400).json({ error: 'Game session too short' });
+  }
+  player._activeGameSession = null; // consume — one-time use
   const t = ensureTournament();
   if (Date.now() > t.endsAt) return res.status(400).json({ error: 'Tournament ended' });
   const entry = t.leaderboard.find(e => e.playerId === player.id);
   if (!entry) return res.status(400).json({ error: 'Not entered in tournament' });
   const score = Math.min(Math.max(0, parseInt(req.body.score) || 0), 999999);
-  if (score > entry.score) entry.score = score;
+  const maxPlausibleScore = Math.min(999999, Math.floor(sessionDuration / 1000) * 4);
+  if (score > maxPlausibleScore) {
+    db.logSecurityEvent('warn', 'tournament', 'suspicious_score', {
+      playerId: player.id, details: { score, sessionDuration, maxPlausible: maxPlausibleScore },
+    });
+    // Cap to plausible maximum
+    const cappedScore = maxPlausibleScore;
+    if (cappedScore > entry.score) entry.score = cappedScore;
+  } else {
+    if (score > entry.score) entry.score = score;
+  }
+  putPlayer(player);
   t.leaderboard.sort((a, b) => b.score - a.score);
   res.json({ success: true, rank: t.leaderboard.findIndex(e => e.playerId === player.id) + 1, leaderboard: t.leaderboard.slice(0, 10) });
 });
@@ -3348,7 +3379,7 @@ function cleanExpiredDuels() {
 setInterval(cleanExpiredDuels, 30000);
 
 function getDuelId() {
-  return 'duel_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  return 'duel_' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex');
 }
 
 // Create a new duel (player creates and waits for opponent)
@@ -3677,7 +3708,7 @@ function sanitizeDuel(d) {
 
 // ─── GOLDPOT LIVE — Streaming Routes ────────────────────────────────────────
 function getStreamId() {
-  return 'stream_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  return 'stream_' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex');
 }
 
 function sanitizeStream(s) {
@@ -4081,20 +4112,17 @@ app.post('/api/withdraw', rateLimit(60000, 3), (req, res) => {
     }
   }
 
-  // Daily withdrawal limit: $500/day — atomic check
+  // Daily withdrawal limit: $500/day — check before incrementing
   const todayStr = new Date().toISOString().split('T')[0];
   if (!player._withdrawDay || player._withdrawDay !== todayStr) {
     player._withdrawDay = todayStr;
     player._withdrawTodayTotal = 0;
   }
-  // Mark pending immediately to prevent race condition
-  player._withdrawTodayTotal += cents;
-  putPlayer(player);
-  if (player._withdrawTodayTotal > 50000) {
-    player._withdrawTodayTotal -= cents; // rollback
-    putPlayer(player);
+  if ((player._withdrawTodayTotal || 0) + cents > 50000) {
     return res.status(400).json({ error: 'Daily withdrawal limit is $500. Try again tomorrow.' });
   }
+  player._withdrawTodayTotal = (player._withdrawTodayTotal || 0) + cents;
+  putPlayer(player);
 
   // Atomic balance check + withdrawal creation in a single DB transaction
   const result = db.atomicCreateWithdrawal(player.id, player.name, cents, method, cleanHandle, balance);
@@ -4151,18 +4179,7 @@ app.post('/api/delete-account', rateLimit(60000, 2), (req, res) => {
 });
 
 // ─── Self-Exclusion ─────────────────────────────────────────────────────────
-app.post('/api/self-exclude', rateLimit(60000, 2), (req, res) => {
-  const player = getPlayer(req.body.playerId);
-  if (!player) return res.status(404).json({ error: 'Player not found' });
-  const duration = parseInt(req.body.duration) || 7; // days
-  const allowedDurations = [1, 7, 30, 90, 180, 365];
-  const safeDuration = allowedDurations.includes(duration) ? duration : 7;
-  player.selfExcludedUntil = Date.now() + safeDuration * 24 * 3600000;
-  putPlayer(player);
-  db.logAudit('self_exclusion', { playerId: player.id, details: { days: safeDuration, until: player.selfExcludedUntil } });
-  res.json({ success: true, excludedUntil: player.selfExcludedUntil, days: safeDuration,
-    message: `You have been self-excluded for ${safeDuration} days. You will not be able to make purchases during this period.` });
-});
+// Self-exclude (handled by JWT-authenticated route below)
 
 // ─── Set Daily Deposit Limit ────────────────────────────────────────────────
 app.post('/api/set-deposit-limit', rateLimit(60000, 3), (req, res) => {
@@ -4236,7 +4253,7 @@ app.post('/api/admin/withdrawal-action', rateLimit(60000, 10), async (req, res) 
       transferId = transfer.id;
     } catch (err) {
       log('error', 'Stripe transfer failed', { withdrawalId: id, error: err.message });
-      return res.status(500).json({ error: `Stripe transfer failed: ${err.message}` });
+      return res.status(500).json({ error: 'Stripe transfer failed. Please try again or contact support.' });
     }
   }
 
@@ -4430,7 +4447,11 @@ app.post('/api/self-exclude', rateLimit(60000, 3), (req, res) => {
   try { decoded = jwt.verify(authHeader.replace('Bearer ', ''), JWT_SECRET); } catch { return res.status(401).json({ error: 'Invalid token' }); }
   const player = getPlayer(decoded.sub);
   if (!player) return res.status(404).json({ error: 'Player not found' });
-  const days = Math.min(Math.max(parseInt(req.body.days) || 1, 1), 365);
+  const days = parseInt(req.body.days);
+  const allowedDays = [1, 7, 30, 90, 180, 365];
+  if (!days || !allowedDays.includes(days)) {
+    return res.status(400).json({ error: `Invalid period. Choose from: ${allowedDays.join(', ')} days` });
+  }
   player.selfExcludedUntil = Date.now() + days * 86400000;
   putPlayer(player);
   db.logSecurityEvent('info', 'responsible_gaming', 'self_exclude', { playerId: player.id, days });
@@ -5116,7 +5137,7 @@ function handleSlashCommand(ws, player, text) {
   const cmd = parts[0].toLowerCase();
 
   if (cmd === '/coinflip' || cmd === '/flip') {
-    const result = Math.random() < 0.5 ? 'HEADS 🪙' : 'TAILS 🪙';
+    const result = crypto.randomInt(2) === 0 ? 'HEADS 🪙' : 'TAILS 🪙';
     const msg = {
       type: 'chat', subtype: 'command',
       id: crypto.randomBytes(8).toString('hex'),
@@ -5227,6 +5248,7 @@ function handleSlashCommand(ws, player, text) {
         const results = {};
         for (const [opt, voters] of Object.entries(poll.votes)) results[opt] = voters.length;
         broadcast({ type: 'chat_poll_end', pollId, question: poll.question, results, creatorName: poll.creatorName });
+        chatPolls.delete(pollId);
       }
     }, 60000);
     broadcast({
@@ -5237,10 +5259,11 @@ function handleSlashCommand(ws, player, text) {
   }
 
   if (cmd === '/rain') {
-    // /rain <amount> — share entries with everyone online
+    // /rain <amount> — share gold entries with everyone online
     const amount = Math.min(Math.max(parseInt(parts[1]) || 0, 1), 50);
-    if (!player.entries || player.entries < amount) {
-      ws.send(JSON.stringify({ type: 'chat_error', text: 'Not enough entries! You have ' + (player.entries || 0) }));
+    const senderGold = (player.entries && player.entries.gold) || 0;
+    if (senderGold < amount) {
+      ws.send(JSON.stringify({ type: 'chat_error', text: 'Not enough gold entries! You have ' + senderGold }));
       return true;
     }
     // Collect unique online player IDs (excluding sender)
@@ -5259,25 +5282,26 @@ function handleSlashCommand(ws, player, text) {
     }
     const perPerson = Math.max(1, Math.floor(amount / recipients.length));
     const totalGiven = perPerson * recipients.length;
-    if (player.entries < totalGiven) {
+    if (senderGold < totalGiven) {
       ws.send(JSON.stringify({ type: 'chat_error', text: 'Not enough entries for ' + recipients.length + ' players! Need at least ' + recipients.length }));
       return true;
     }
-    // Deduct first, then distribute — only credit verified players
-    player.entries -= totalGiven;
+    // Deduct from sender's gold entries, then distribute
+    player.entries.gold = senderGold - totalGiven;
     putPlayer(player);
     let actualGiven = 0;
     for (const rid of recipients) {
       const rp = getPlayer(rid);
       if (rp) {
-        rp.entries = (rp.entries || 0) + perPerson;
+        if (!rp.entries || typeof rp.entries !== 'object') rp.entries = { mini: 0, gold: 0, mega: 0, jackpot: 0, flash: 0 };
+        rp.entries.gold = (rp.entries.gold || 0) + perPerson;
         putPlayer(rp);
         actualGiven += perPerson;
       }
     }
     // Refund entries for recipients that couldn't be found
     if (actualGiven < totalGiven) {
-      player.entries += (totalGiven - actualGiven);
+      player.entries.gold += (totalGiven - actualGiven);
       putPlayer(player);
     }
     broadcast({

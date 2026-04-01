@@ -15,12 +15,12 @@
   <meta property="og:title" content="GOLDPOT — Help build the biggest jackpot 🏆">
   <meta property="og:description" content="The jackpots are growing. Donate to build the pot — 100% goes to the prize pool. Be part of the launch!">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://www.goldpot.us">
+  <meta property="og:url" content="https://www.goldpot.us/">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="GOLDPOT — Win The National Pot 🏆">
   <meta name="twitter:description" content="The pot is growing every second. Play for $1 or enter FREE.">
-  <meta property="og:image" content="https://www.goldpot.us/img/og-share.png">
-  <meta name="twitter:image" content="https://www.goldpot.us/img/og-share.png">
+  <meta property="og:image" content="https://www.goldpot.us/img/gold-pot-logo.png">
+  <meta name="twitter:image" content="https://www.goldpot.us/img/gold-pot-logo.png">
   <link rel="canonical" href="https://www.goldpot.us/">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <meta name="theme-color" content="#0a0a0f">
@@ -49,7 +49,7 @@
     "creator": {
       "@type": "Organization",
       "name": "GoldPot Inc.",
-      "email": "support@goldpot.com"
+      "email": "support@goldpot.us"
     }
   }
   </script>
@@ -59,7 +59,7 @@
     "@type": "BreadcrumbList",
     "itemListElement": [
       { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.goldpot.us/" },
-      { "@type": "ListItem", "position": 2, "name": "Play", "item": "https://www.goldpot.us/#play" },
+      { "@type": "ListItem", "position": 2, "name": "Play", "item": "https://www.goldpot.us/#app" },
       { "@type": "ListItem", "position": 3, "name": "Rules", "item": "https://www.goldpot.us/rules" },
       { "@type": "ListItem", "position": 4, "name": "Privacy", "item": "https://www.goldpot.us/privacy" }
     ]
@@ -940,7 +940,7 @@
       <p>Must be 18+ and US resident. Void where prohibited. See Official Rules for complete details.</p>
       <p class="footer-links"><a href="/rules">Official Rules</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/responsible-gaming">Responsible Gaming</a></p>
       <p class="footer-responsible">🛡️ Play responsibly. Set spending limits in your account. If you need help, contact the <a href="https://www.ncpgambling.org/" rel="noopener noreferrer" target="_blank">National Council on Problem Gambling</a> at 1-800-522-4700.</p>
-      <p class="footer-company">GoldPot Inc. · Questions? <a href="mailto:support@goldpot.com">support@goldpot.com</a></p>
+      <p class="footer-company">GoldPot Inc. · Questions? <a href="mailto:support@goldpot.us">support@goldpot.us</a></p>
       <p class="footer-copy">© 2026 GoldPot Inc.</p>
     </footer>
   </div>
@@ -1146,7 +1146,7 @@
       </div>
 
       <div id="withdrawForm">
-        <label class="withdraw-label">Amount</label>
+        <label class="withdraw-label" for="withdrawAmountInput">Amount</label>
         <div class="withdraw-amount-row">
           <span class="withdraw-dollar">$</span>
           <input type="text" id="withdrawAmountInput" class="withdraw-input" placeholder="0.00" inputmode="decimal" maxlength="10" aria-label="Withdrawal amount">
@@ -1154,8 +1154,8 @@
         </div>
         <div class="withdraw-min-note">Minimum $5.00</div>
 
-        <label class="withdraw-label">Send to</label>
-        <div class="withdraw-method-grid">
+        <div class="withdraw-label" id="withdrawMethodLabel">Send to</div>
+        <div class="withdraw-method-grid" role="group" aria-labelledby="withdrawMethodLabel">
           <button class="withdraw-method-option" data-method="stripe_connect">
             <span class="wm-icon">🏦</span>
             <span class="wm-label">Bank</span>
@@ -1181,7 +1181,7 @@
         </div>
 
         <div id="withdrawHandleWrap" class="hidden">
-          <label class="withdraw-label" id="withdrawHandleLabel">PayPal email</label>
+          <label class="withdraw-label" id="withdrawHandleLabel" for="withdrawHandleInput">PayPal email</label>
           <input type="text" id="withdrawHandleInput" class="withdraw-input" placeholder="you@email.com" maxlength="100" aria-label="Payment handle">
         </div>
 
@@ -1408,7 +1408,7 @@
     <div class="modal-content gift-modal">
       <h2 class="gift-title" id="giftTitle">🎁 GIFT ENTRIES</h2>
       <p class="gift-sub">Send entries to another player — they'll love you!</p>
-      <label class="gift-label">Recipient Name</label>
+      <label class="gift-label" for="giftRecipient">Recipient Name</label>
       <input type="text" id="giftRecipient" class="gift-input" placeholder="Player name" maxlength="20" autocomplete="off" aria-label="Recipient name">
       <label class="gift-label">Entries to Gift</label>
       <div class="gift-qty-row">
@@ -1417,7 +1417,7 @@
         <button class="gift-qty-btn" data-giftqty="5">5</button>
         <button class="gift-qty-btn" data-giftqty="10">10</button>
       </div>
-      <label class="gift-label">Pot</label>
+      <label class="gift-label" for="giftPot">Pot</label>
       <select id="giftPot" class="gift-select">
         <option value="gold">Gold Pot</option>
         <option value="mini">Mini Pot</option>

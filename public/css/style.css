@@ -59,6 +59,12 @@
   --jackpot-blue: #4080ff;
   --jackpot-light: #80c0ff;
 
+  /* Shadow scale */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 20px var(--gold-glow);
+
   /* Z-index scale */
   --z-nav: 100;
   --z-sticky: 200;
@@ -1299,7 +1305,7 @@ body {
 
 /* ─── TAB PANELS & BOTTOM NAV ────────────────────────────────────────────── */
 /* Q8: adaptive bottom padding per tab */
-.tab-panel { display: none; opacity: 0; transition: opacity 0.25s ease; padding-bottom: 70px; }
+.tab-panel { display: none; opacity: 0; transition: opacity 0.25s ease; padding-bottom: 70px; contain-intrinsic-size: 0 500px; }
 .tab-panel.active { display: block; opacity: 1; }
 .tab-panel.short-content { padding-bottom: 40px; }
 
@@ -1448,6 +1454,21 @@ body {
   outline: none; border-color: var(--gold);
   box-shadow: 0 0 0 3px rgba(240,192,64,0.15), 0 4px 12px rgba(240,192,64,0.1);
   background: rgba(240,192,64,0.03);
+}
+.name-input.field-error {
+  border-color: var(--red) !important;
+  box-shadow: 0 0 0 3px rgba(255,64,96,0.15) !important;
+  animation: fieldShake 0.4s ease;
+}
+.field-error-msg {
+  color: var(--red); font-size: var(--fs-2xs); text-align: left;
+  margin: -4px 0 8px 4px; display: flex; align-items: center; gap: 4px;
+}
+.field-error-msg::before { content: '⚠'; }
+@keyframes fieldShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
 }
 .name-input::placeholder { color: var(--text3); transition: opacity 0.2s; }
 .name-input:focus::placeholder { opacity: 0.4; }
@@ -2386,7 +2407,8 @@ body {
 
 /* ═══ MILESTONES ═══ */
 .milestones-section { padding: 0 16px 10px; }
-.milestones-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.milestones-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; scrollbar-width: none; scroll-snap-type: x mandatory; }
+.milestones-list > * { scroll-snap-align: start; }
 .milestones-list::-webkit-scrollbar { display: none; }
 .milestone-card {
   flex: 0 0 auto; background: var(--card); border-radius: var(--radius-sm);
@@ -3005,6 +3027,51 @@ body {
 .skeleton-card {
   height: 80px; border-radius: var(--radius);
   border: 1px solid var(--surface2);
+}
+.skeleton-group {
+  display: flex; flex-direction: column; gap: 12px; padding: 16px;
+}
+.skeleton-row {
+  display: flex; align-items: center; gap: 12px;
+}
+.skeleton-row .skeleton-circle {
+  width: 40px; height: 40px; flex-shrink: 0;
+}
+.skeleton-row .skeleton-lines {
+  flex: 1; display: flex; flex-direction: column; gap: 6px;
+}
+
+/* ─── Button Loading Spinner ─────────────────────────────────────────────── */
+.btn-loading {
+  pointer-events: none; opacity: 0.7; position: relative;
+}
+.btn-loading::after {
+  content: ''; position: absolute; width: 18px; height: 18px;
+  border: 2px solid transparent; border-top-color: currentColor;
+  border-radius: 50%; animation: spin 0.6s linear infinite;
+  right: 14px; top: 50%; margin-top: -9px;
+}
+
+/* ─── Empty States ───────────────────────────────────────────────────────── */
+.empty-state {
+  text-align: center; padding: 48px 24px; color: var(--text2);
+}
+.empty-state-icon {
+  font-size: 3rem; margin-bottom: 12px; opacity: 0.5;
+  animation: emptyFloat 3s ease-in-out infinite;
+}
+@keyframes emptyFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.empty-state-title {
+  font-size: var(--fs-lg); font-weight: 700; color: var(--text); margin-bottom: 6px;
+}
+.empty-state-desc {
+  font-size: var(--fs-sm); max-width: 280px; margin: 0 auto 16px;
+}
+.empty-state .btn {
+  margin: 0 auto; display: inline-flex;
 }
 
 /* ─── Pot Amount Odometer Effect ─────────────────────────────────────────── */
@@ -6486,3 +6553,43 @@ body {
   font-family: var(--font); transition: all 0.2s;
 }
 .btn-danger:hover { filter: brightness(1.1); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   10/10 UX — Accessibility, Focus, Keyboard Navigation
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Keyboard focus ring (only on keyboard nav, not click) */
+:focus-visible {
+  outline: 2px solid var(--gold) !important;
+  outline-offset: 2px !important;
+}
+
+/* Tab keyboard navigation indicator */
+.bottom-nav-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Modal focus trap visual cue */
+.modal-content:focus-visible {
+  outline: none;
+}
+
+/* Scroll-snap for horizontally scrollable offer rows */
+.offer-scroll-row {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.offer-scroll-row > * {
+  scroll-snap-align: start;
+}
+
+/* Reduced motion: disable all non-essential animations */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton, .skeleton-text, .skeleton-card { animation: none !important; }
+  .empty-state-icon { animation: none !important; }
+  .btn-primary-cta { animation: none !important; }
+  .tab-slide-left, .tab-slide-right { animation: none !important; }
+  .border-ticker-inner { animation-duration: 60s !important; }
+}

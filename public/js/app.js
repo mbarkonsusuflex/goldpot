@@ -211,6 +211,7 @@
       const reward = ACHIEVEMENT_REWARDS[key] || 0;
       setTimeout(() => {
         showBonus(`${ach.icon} ACHIEVEMENT UNLOCKED: ${ach.label}!`);
+        if (navigator.vibrate) navigator.vibrate([40, 30, 60]);
         if (reward > 0) {
           setTimeout(() => showBonus(`🎁 +${reward} BONUS ENTRIES for ${ach.label}!`), 2800);
         }
@@ -275,6 +276,8 @@
     document.querySelectorAll('.error-toast').forEach(t => t.remove());
     const el = document.createElement('div');
     el.className = 'error-toast';
+    el.setAttribute('role', 'alert');
+    el.setAttribute('aria-live', 'assertive');
     el.textContent = msg;
     document.body.appendChild(el);
     requestAnimationFrame(() => el.classList.add('show'));
@@ -300,14 +303,19 @@
   // ─── Stripe Purchase Helper ─────────────────────────────────────────────
   // Routes any purchase through create-checkout-session, handling demo vs real Stripe.
   // onDemoSuccess is called in demo mode after checkout session confirms demo: true.
-  async function stripePurchase({ purchaseType, quantity, potId, tier, pendingData }, onDemoSuccess) {
+  async function stripePurchase({ purchaseType, quantity, potId, tier, pendingData }, onDemoSuccess, triggerBtn) {
+    // Show loading state on trigger button if provided
+    if (triggerBtn) { triggerBtn.classList.add('btn-loading'); triggerBtn.disabled = true; }
     const body = { playerId: player.id, purchaseType, quantity: quantity || 1, potId: potId || currentPot };
     if (tier) body.tier = tier;
     if (pendingData) { if (pendingData.stake) body.stake = pendingData.stake; }
     const res = await api('create-checkout-session', body);
+    if (triggerBtn) { triggerBtn.classList.remove('btn-loading'); triggerBtn.disabled = false; }
     if (res.error) { showBonus(res.error); return; }
     if (res.demo) {
       await onDemoSuccess(res);
+      // Haptic on successful purchase
+      if (navigator.vibrate) navigator.vibrate([20, 40, 20]);
     } else if (res.url) {
       sessionStorage.setItem('goldpot_pending_purchase', JSON.stringify({
         type: purchaseType,
@@ -881,19 +889,40 @@
       const stateVal = ($('#playerStateInput') ? $('#playerStateInput').value : '');
       const ref = ($('#refCodeInput').value.trim() || window._pendingRefCode || '').toUpperCase();
       const dob = $('#playerDobInput') ? $('#playerDobInput').value : '';
-      if (!name) { $('#playerNameInput').focus(); return; }
-      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('Please enter a valid email address'); $('#playerEmailInput').focus(); return; }
-      if (!stateVal) { $('#statePickerBtn').focus(); $('#statePickerBtn').click(); return; }
-      if (!dob) { showError('Please enter your date of birth'); $('#playerDobInput').focus(); return; }
+
+      // Clear previous errors
+      $$('.field-error').forEach(el => el.classList.remove('field-error'));
+      $$('.field-error-msg').forEach(el => el.remove());
+
+      // Inline validation
+      let hasErr = false;
+      function fieldErr(input, msg) {
+        hasErr = true;
+        input.classList.add('field-error');
+        const m = document.createElement('div');
+        m.className = 'field-error-msg';
+        m.textContent = msg;
+        input.parentNode.insertBefore(m, input.nextSibling);
+      }
+      if (!name) fieldErr($('#playerNameInput'), 'Name is required');
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fieldErr($('#playerEmailInput'), 'Enter a valid email');
+      if (!stateVal) fieldErr($('#statePickerBtn'), 'Select your state');
+      if (!dob) fieldErr($('#playerDobInput'), 'Date of birth is required');
+      if (hasErr) { if (navigator.vibrate) navigator.vibrate([30, 50, 30]); return; }
+
+      // Loading state
+      const btn = $('#btnJoin');
+      btn.classList.add('btn-loading');
+      btn.disabled = true;
+
       // Register immediately
       const data = await api('register', { name, email: email || undefined, state: stateVal, dateOfBirth: dob, referralCode: ref || undefined });
+      btn.classList.remove('btn-loading');
+      btn.disabled = false;
+      if (data.error) return;
       player = data.player;
       if (data.token) localStorage.setItem('goldpot_token', data.token);
       localStorage.setItem('goldpot_player_id', player.id);
-      // Store verification link for email verification prompt
-      if (data.emailVerifyToken) {
-        localStorage.setItem('goldpot_verify_url', '/api/verify-email?id=' + encodeURIComponent(player.id) + '&token=' + encodeURIComponent(data.emailVerifyToken));
-      }
       track('onboarding_name_completed', { referred: !!ref });
       // Move to Step 2: payment
       $('#onboardStep1').classList.add('hidden');
@@ -908,6 +937,16 @@
 
     $('#playerNameInput').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') $('#btnJoin').click();
+    });
+
+    // Clear inline field errors on focus
+    ['playerNameInput', 'playerEmailInput', 'playerDobInput', 'statePickerBtn'].forEach(id => {
+      const el = $('#' + id);
+      if (el) el.addEventListener('focus', () => {
+        el.classList.remove('field-error');
+        const msg = el.parentNode.querySelector('.field-error-msg');
+        if (msg) msg.remove();
+      });
     });
 
     // ── Onboarding Step 2: Payment method selection ──
@@ -1299,7 +1338,6 @@
       if (!confirm('Log out of GOLDPOT?')) return;
       localStorage.removeItem('goldpot_player_id');
       localStorage.removeItem('goldpot_token');
-      localStorage.removeItem('goldpot_verify_url');
       if (pollTimer) clearInterval(pollTimer);
       if (ws) { ws.close(); ws = null; }
       player = null;
@@ -1335,7 +1373,6 @@
         await api('delete-account', {});
         localStorage.removeItem('goldpot_player_id');
         localStorage.removeItem('goldpot_token');
-        localStorage.removeItem('goldpot_verify_url');
         if (pollTimer) clearInterval(pollTimer);
         if (ws) { ws.close(); ws = null; }
         player = null;
@@ -2369,8 +2406,8 @@
       setTimeout(() => {
         const prize = drawResult.winner.prize;
         const needed = myMiss.awayBy || 1;
-        $('#nearMissText').innerHTML = `You had <strong>${myMiss.entries} entries</strong> — just <strong>${needed} more</strong> would have doubled your odds!<br><br>
-          <span style="color:#f0c040">${drawResult.winner.name}</span> took home <strong style="color:#40e070">$${prize}</strong>.<br>
+        $('#nearMissText').innerHTML = `You had <strong>${parseInt(myMiss.entries) || 0} entries</strong> — just <strong>${parseInt(needed) || 1} more</strong> would have doubled your odds!<br><br>
+          <span style="color:#f0c040">${esc(drawResult.winner.name)}</span> took home <strong style="color:#40e070">$${parseFloat(prize) || 0}</strong>.<br>
           <em style="color:#ff8040">That could have been YOU.</em>`;
         openModal('nearMissModal');
         SFX.alert && SFX.alert();
@@ -2561,27 +2598,23 @@
 
     // Email verification reminder
     if (player && !player.emailVerified) {
-      const verifyUrl = localStorage.getItem('goldpot_verify_url');
-      if (verifyUrl) {
-        const banner = document.createElement('div');
-        banner.className = 'email-verify-banner';
-        banner.innerHTML = '📧 <b>Verify your email</b> to secure your account. <a href="' + verifyUrl + '" target="_blank">Verify now</a> <button class="evb-close">&times;</button>';
-        document.body.appendChild(banner);
-        banner.querySelector('.evb-close').addEventListener('click', () => banner.remove());
-        // Poll for verification — auto-dismiss when verified
-        const emailPoll = setInterval(async () => {
-          const fresh = await api('state');
-          if (fresh && fresh.player && fresh.player.emailVerified) {
-            clearInterval(emailPoll);
-            player.emailVerified = true;
-            banner.remove();
-            localStorage.removeItem('goldpot_verify_url');
-            showBonus('✅ Email verified!');
-          }
-        }, 5000);
-        // Stop polling after 10 minutes
-        setTimeout(() => clearInterval(emailPoll), 600000);
-      }
+      const banner = document.createElement('div');
+      banner.className = 'email-verify-banner';
+      banner.innerHTML = '📧 <b>Verify your email</b> to secure your account. Check your inbox for a verification link. <button class="evb-close">&times;</button>';
+      document.body.appendChild(banner);
+      banner.querySelector('.evb-close').addEventListener('click', () => banner.remove());
+      // Poll for verification — auto-dismiss when verified
+      const emailPoll = setInterval(async () => {
+        const fresh = await api('state');
+        if (fresh && fresh.player && fresh.player.emailVerified) {
+          clearInterval(emailPoll);
+          player.emailVerified = true;
+          banner.remove();
+          showBonus('✅ Email verified!');
+        }
+      }, 5000);
+      // Stop polling after 10 minutes
+      setTimeout(() => clearInterval(emailPoll), 600000);
     }
 
     // Handle Stripe return — verify payment then play bonus game
@@ -4132,9 +4165,18 @@
 
   // ─── Leaderboard ───────────────────────────────────────────────────────
   function renderLeaderboard() {
-    if (!gameState || !gameState.leaderboard || gameState.leaderboard.length === 0) return;
     const podiumEl = $('#leaderboardPodium');
     const listEl = $('#leaderboardList');
+    if (!gameState || !gameState.leaderboard || gameState.leaderboard.length === 0) {
+      if (podiumEl) podiumEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🏆</div>
+          <div class="empty-state-title">No leaders yet</div>
+          <div class="empty-state-desc">Be the first to claim the top spot — buy entries to start climbing!</div>
+        </div>`;
+      if (listEl) listEl.innerHTML = '';
+      return;
+    }
     const medals = ['🥇', '🥈', '🥉'];
     const pClass = ['lb-p1', 'lb-p2', 'lb-p3'];
     const top3 = gameState.leaderboard.slice(0, 3);
@@ -4147,7 +4189,7 @@
           <span class="lb-podium-medal">${medals[i]}</span>
           <span class="lb-podium-name">${esc(p.name)}</span>
           <span class="lb-podium-entries">${formatNum(p.entries)}</span>
-          <span class="lb-podium-level">${p.levelInfo ? p.levelInfo.icon + ' ' + p.levelInfo.name : ''}</span>
+          <span class="lb-podium-level">${p.levelInfo ? esc(p.levelInfo.icon + ' ' + p.levelInfo.name) : ''}</span>
         </div>
       `).join('');
     }
@@ -4157,7 +4199,7 @@
       listEl.innerHTML = rest.map((p, i) => `
         <div class="lb-row${player && p.name === player.name ? ' lb-you' : ''}">
           <span class="lb-rank">${i + 4}</span>
-          <span class="lb-name">${p.levelInfo ? p.levelInfo.icon : ''} ${esc(p.name)}</span>
+          <span class="lb-name">${p.levelInfo ? esc(p.levelInfo.icon) + ' ' : ''}${esc(p.name)}</span>
           <span class="lb-entries">${formatNum(p.entries)} entries</span>
           <span class="lb-streak">🔥${p.streak || 0}</span>
         </div>
@@ -4167,8 +4209,16 @@
 
   // ─── Winners List ──────────────────────────────────────────────────────
   function renderWinnersList() {
-    if (!gameState || !gameState.recentWinners || gameState.recentWinners.length === 0) return;
     const el = $('#winnersList');
+    if (!gameState || !gameState.recentWinners || gameState.recentWinners.length === 0) {
+      if (el) el.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🎰</div>
+          <div class="empty-state-title">No winners yet</div>
+          <div class="empty-state-desc">The first drawing is coming soon — get your entries in!</div>
+        </div>`;
+      return;
+    }
     el.innerHTML = gameState.recentWinners.slice(-8).reverse().map((w, i) => {
       const potRaw = (w.pot || '').toUpperCase();
       let potKey = 'gold';
@@ -4211,6 +4261,8 @@
     openModal('winnerModal');
     spawnConfetti();
     SFX.win();
+    // Haptic celebration burst for wins
+    if (navigator.vibrate) navigator.vibrate([50, 30, 80, 30, 120]);
   }
 
   function spawnConfetti() {
@@ -4360,6 +4412,16 @@
     // Focus first focusable element inside modal
     const focusable = m.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
     if (focusable.length) setTimeout(() => focusable[0].focus(), 80);
+    // Focus trap: keep Tab within modal
+    m._trapHandler = function(e) {
+      if (e.key !== 'Tab') return;
+      const foc = m.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      if (!foc.length) return;
+      const first = foc[0], last = foc[foc.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    m.addEventListener('keydown', m._trapHandler);
   }
   function closeModal(id) {
     const m = $('#' + id);
@@ -4367,6 +4429,8 @@
       m.classList.add('hidden');
       const content = m.querySelector('.modal-content');
       if (content) content.classList.remove('bottom-sheet');
+      // Remove focus trap
+      if (m._trapHandler) { m.removeEventListener('keydown', m._trapHandler); m._trapHandler = null; }
     }
     _openModalId = null;
     if (_modalReturnFocus) { try { _modalReturnFocus.focus(); } catch(e){} _modalReturnFocus = null; }
@@ -5586,7 +5650,7 @@
         </div>
         <div style="display:flex;align-items:center;gap:.6rem">
           <span class="duel-li-stake">${d.stakeLabel}</span>
-          <button class="btn-gold duel-join-btn" onclick="window._joinDuel('${d.id}',${d.stake})">⚔️ JOIN</button>
+          <button class="btn-gold duel-join-btn" onclick="window._joinDuel('${esc(String(d.id))}',${parseInt(d.stake) || 0})">⚔️ JOIN</button>
         </div>
       </div>`;
     }).join('');
@@ -6533,15 +6597,30 @@
   function showTabSkeleton(tabName) {
     const panel = document.querySelector(`.tab-panel[data-panel="${CSS.escape(tabName)}"]`);
     if (!panel) return;
-    // Don't add skeleton if panel already has content visible
-    if (panel.querySelector('.skeleton')) return;
+    if (panel.querySelector('.skeleton-group')) return;
+    // Build tab-specific skeleton content
     const skel = document.createElement('div');
-    skel.className = 'skeleton';
-    skel.style.height = '120px';
-    skel.style.borderRadius = '12px';
-    skel.style.marginBottom = '12px';
+    skel.className = 'skeleton-group';
+    const rows = tabName === 'play' ? 3 : tabName === 'offers' ? 4 : tabName === 'progress' ? 5 : 3;
+    for (let i = 0; i < rows; i++) {
+      const row = document.createElement('div');
+      row.className = 'skeleton-row';
+      row.innerHTML = `
+        <div class="skeleton skeleton-circle" style="width:40px;height:40px"></div>
+        <div class="skeleton-lines">
+          <div class="skeleton skeleton-text" style="width:${70 + Math.random() * 30}%"></div>
+          <div class="skeleton skeleton-text short" style="width:${40 + Math.random() * 20}%"></div>
+        </div>`;
+      skel.appendChild(row);
+    }
+    if (tabName === 'play') {
+      const card = document.createElement('div');
+      card.className = 'skeleton skeleton-card';
+      card.style.height = '100px';
+      skel.prepend(card);
+    }
     panel.prepend(skel);
-    setTimeout(() => skel.remove(), 600);
+    setTimeout(() => skel.remove(), 800);
   }
 
   // ─── Q45: Onboarding Progress Dots ────────────────────────────────────
