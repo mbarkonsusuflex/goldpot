@@ -465,6 +465,90 @@
       $('#app').classList.remove('hidden');
       showNameModal();
     });
+
+    // Sign-in link on hero screen
+    var heroSignIn = $('#btnHeroSignIn');
+    if (heroSignIn) heroSignIn.addEventListener('click', (e) => {
+      e.preventDefault();
+      hero.classList.add('hidden');
+      $('#app').classList.remove('hidden');
+      showSignInModal();
+    });
+  }
+
+  // ─── Sign In Modal ─────────────────────────────────────────────────────
+  function showSignInModal() {
+    var modal = $('#signInModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    var errEl = $('#signInError');
+    if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+    var emailInput = $('#signInEmailInput');
+    if (emailInput) { emailInput.value = ''; setTimeout(() => emailInput.focus(), 300); }
+
+    // Wire sign-in button
+    var btn = $('#btnSignIn');
+    if (btn) btn.onclick = handleSignIn;
+
+    // Enter key
+    if (emailInput) emailInput.onkeydown = (e) => { if (e.key === 'Enter') handleSignIn(); };
+
+    // "Create one" link
+    var regLink = $('#btnSignInToRegister');
+    if (regLink) regLink.onclick = (e) => {
+      e.preventDefault();
+      modal.classList.add('hidden');
+      showNameModal();
+    };
+
+    // "Sign in" link on registration modal
+    var modalSignIn = $('#btnModalSignIn');
+    if (modalSignIn) modalSignIn.onclick = (e) => {
+      e.preventDefault();
+      closeModal('nameModal');
+      showSignInModal();
+    };
+
+    // Backdrop close
+    var backdrop = modal.querySelector('.modal-backdrop');
+    if (backdrop) backdrop.onclick = () => { modal.classList.add('hidden'); showHeroScreen(); };
+  }
+
+  async function handleSignIn() {
+    var emailInput = $('#signInEmailInput');
+    var errEl = $('#signInError');
+    var btn = $('#btnSignIn');
+    var email = (emailInput ? emailInput.value : '').trim();
+
+    if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (errEl) { errEl.textContent = 'Enter a valid email address'; errEl.classList.remove('hidden'); }
+      return;
+    }
+
+    btn.classList.add('btn-loading');
+    btn.disabled = true;
+
+    try {
+      var data = await api('login', { email });
+      btn.classList.remove('btn-loading');
+      btn.disabled = false;
+      if (data.error) {
+        if (errEl) { errEl.textContent = data.error; errEl.classList.remove('hidden'); }
+        return;
+      }
+      player = data.player;
+      if (data.token) localStorage.setItem('goldpot_token', data.token);
+      localStorage.setItem('goldpot_player_id', player.id);
+      $('#signInModal').classList.add('hidden');
+      track('login_completed');
+      showApp();
+    } catch (err) {
+      btn.classList.remove('btn-loading');
+      btn.disabled = false;
+      if (errEl) { errEl.textContent = 'Something went wrong. Try again.'; errEl.classList.remove('hidden'); }
+    }
   }
 
   function setupCanvas() {
@@ -4358,6 +4442,13 @@
     const cardForm = $('#cardForm');
     if (cardForm) cardForm.classList.add('hidden');
     openModal('nameModal');
+    // Wire "Sign in" link inside registration modal
+    var modalSignIn = $('#btnModalSignIn');
+    if (modalSignIn) modalSignIn.onclick = (e) => {
+      e.preventDefault();
+      closeModal('nameModal');
+      showSignInModal();
+    };
     // Auto-fill referral code from URL ?ref= param
     if (window._pendingRefCode) {
       const refInput = $('#refCodeInput');

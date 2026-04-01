@@ -119,6 +119,7 @@
       </div>
 
       <button class="btn btn-premium hero-cta" id="btnHeroJoin">🪙 JOIN & HELP BUILD THE JACKPOT</button>
+      <p class="hero-signin">Already have an account? <a href="#" id="btnHeroSignIn">Sign in</a></p>
       <p class="hero-fine">Donations build the prize pots · 18+ US residents · <a href="/rules">Official Rules</a></p>
     </div>
   </div>
@@ -1046,6 +1047,7 @@
         <label class="age-confirm"><input type="checkbox" id="ageConfirm" aria-label="I confirm I am 18+ and a US resident"> I confirm I am 18+ and a US resident</label>
         <button class="btn btn-premium" id="btnJoin" disabled>NEXT →</button>
         <p class="name-legal">Must be 18+. US residents only. By joining you agree to our <a href="/terms" style="color:var(--gold)">Terms</a> and <a href="/privacy" style="color:var(--gold)">Privacy Policy</a>.</p>
+        <p class="name-signin">Already have an account? <a href="#" id="btnModalSignIn">Sign in</a></p>
       </div>
 
       <!-- STEP 2: Payment -->
@@ -1454,6 +1456,20 @@
   <button id="streamBubble" class="chat-bubble hidden" aria-label="Open streams">
     📺<span class="chat-bubble-badge hidden" id="streamBubbleBadge">0</span>
   </button>
+
+  <!-- ═══ SIGN IN MODAL ═══ -->
+  <div id="signInModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="signInTitle">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content name-modal signin-modal">
+      <div class="name-icon">🔓</div>
+      <h2 class="name-title" id="signInTitle">WELCOME BACK</h2>
+      <p class="name-sub">Sign in with your email to recover your account.</p>
+      <input type="email" id="signInEmailInput" class="name-input" placeholder="Your email address" maxlength="100" autocomplete="email" aria-label="Email address">
+      <div id="signInError" class="field-error-msg hidden"></div>
+      <button class="btn btn-premium" id="btnSignIn">SIGN IN →</button>
+      <p class="name-signin">Don't have an account? <a href="#" id="btnSignInToRegister">Create one</a></p>
+    </div>
+  </div>
 
   <!-- GIFT ENTRIES MODAL -->
   <div id="giftModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="giftTitle">

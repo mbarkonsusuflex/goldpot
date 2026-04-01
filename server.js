@@ -1407,6 +1407,24 @@ app.post('/api/register', rateLimit(60000, 3), (req, res) => {
 });
 
 // ─── Email Verification ────────────────────────────────────────────────────
+
+// ─── Login (sign back in) ──────────────────────────────────────────────────
+app.post('/api/login', rateLimit(60000, 5), (req, res) => {
+  const email = sanitizeString(String(req.body.email || ''), 100).toLowerCase().trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Enter a valid email address' });
+  }
+  const player = db.findPlayerByEmail(email);
+  if (!player) {
+    // Don't reveal whether account exists — use generic message
+    return res.status(404).json({ error: 'No account found with that email' });
+  }
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
+  const token = signToken(player.id, ip);
+  db.logSecurityEvent('info', 'auth', 'login', { ip, playerId: player.id });
+  res.json({ player: sanitizePlayer(player), token });
+});
+
 app.get('/api/verify-email', rateLimit(10000, 5), (req, res) => {
   const { id, token } = req.query;
   if (!id || !token) return res.status(400).send('Invalid verification link.');
