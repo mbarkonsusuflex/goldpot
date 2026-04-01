@@ -421,10 +421,10 @@
   async function showHeroScreen() {
     const hero = $('#heroScreen');
     hero.classList.remove('hidden');
-    // Hide chat on login screen
-    var cs = $('#chatSidebar'); if (cs) cs.classList.add('hidden');
-    var ce = $('#chatExpandBtn'); if (ce) ce.classList.add('hidden');
-    var cb = $('#chatBubble'); if (cb) cb.classList.add('hidden');
+    // Hide stream sidebar on login screen
+    var cs = $('#streamSidebar'); if (cs) cs.classList.add('hidden');
+    var ce = $('#streamExpandBtn'); if (ce) ce.classList.add('hidden');
+    var cb = $('#streamBubble'); if (cb) cb.classList.add('hidden');
     // Fetch state to populate hero with live data
     try {
       const st = await api('state');
@@ -2585,9 +2585,9 @@
     connectWebSocket();
     startSessionTimer();
     subscribeToPush();
-    // Show chat after login
-    var cs = $('#chatSidebar'); if (cs) cs.classList.remove('hidden');
-    initChat();
+    // Show stream sidebar after login
+    var cs = $('#streamSidebar'); if (cs) cs.classList.remove('hidden');
+    initStreamSidebar();
     initDuelUI();
     fetchDuels();
     initStreamUI();
@@ -5185,358 +5185,93 @@
     if (popup) popup.remove();
   }
 
-  function initChat() {
-    var sidebar = $('#chatSidebar');
-    var collapseBtn = $('#chatCollapse');
-    var expandBtn = $('#chatExpandBtn');
-    var form = $('#chatForm');
-    var input = $('#chatInput');
-    var emojiToggle = $('#chatEmojiToggle');
-    var emojiPicker = $('#chatEmojiPicker');
+  function initStreamSidebar() {
+    var sidebar = $('#streamSidebar');
+    var collapseBtn = $('#streamCollapse');
+    var expandBtn = $('#streamExpandBtn');
     if (!sidebar) return;
 
-    // Collapse / expand — Q4: 300px, Q38: fullscreen mobile, Q40: bubble
+    // Collapse / expand
     if (collapseBtn) collapseBtn.addEventListener('click', function() {
-      chatOpen = false;
       sidebar.classList.add('collapsed');
       if (expandBtn) expandBtn.classList.remove('hidden');
-      // Q40: show chat bubble on mobile
-      var bubble = $('#chatBubble');
+      var bubble = $('#streamBubble');
       if (bubble && window.innerWidth <= 600) bubble.classList.remove('hidden');
       document.body.style.paddingLeft = window.innerWidth > 600 ? '20px' : '0';
     });
     if (expandBtn) expandBtn.addEventListener('click', function() {
-      chatOpen = true;
       sidebar.classList.remove('collapsed');
       expandBtn.classList.add('hidden');
-      var bubble = $('#chatBubble');
+      var bubble = $('#streamBubble');
       if (bubble) bubble.classList.add('hidden');
-      chatUnread = 0;
-      updateChatBadge();
       document.body.style.paddingLeft = window.innerWidth > 600 ? '300px' : '0';
-      var container = $('#chatMessages');
-      if (container) container.scrollTop = container.scrollHeight;
     });
-    // Q40: chat bubble opens chat
-    var chatBubbleBtn = $('#chatBubble');
-    if (chatBubbleBtn) chatBubbleBtn.addEventListener('click', function() {
-      chatOpen = true;
+    // Mobile bubble opens sidebar
+    var bubbleBtn = $('#streamBubble');
+    if (bubbleBtn) bubbleBtn.addEventListener('click', function() {
       sidebar.classList.remove('collapsed');
-      chatBubbleBtn.classList.add('hidden');
+      bubbleBtn.classList.add('hidden');
       if (expandBtn) expandBtn.classList.add('hidden');
-      chatUnread = 0;
-      updateChatBadge();
-      var container = $('#chatMessages');
-      if (container) container.scrollTop = container.scrollHeight;
     });
 
-    // ── Draggable chat sidebar (desktop only) ──
-    (function initChatDrag() {
-      var handle = document.getElementById('chatDragHandle');
-      if (!handle || window.innerWidth <= 600) return;
+    // Draggable sidebar (desktop + mobile touch)
+    (function initStreamDrag() {
+      var handle = document.getElementById('streamDragHandle');
+      if (!handle) return;
       var dragging = false, startX, startY, origLeft, origTop;
 
-      handle.addEventListener('mousedown', function(e) {
-        // Don't drag if clicking a button inside the header
+      function onStart(clientX, clientY, e) {
         if (e.target.closest('button')) return;
         dragging = true;
         sidebar.classList.add('chat-dragging');
         var rect = sidebar.getBoundingClientRect();
-        startX = e.clientX;
-        startY = e.clientY;
-        origLeft = rect.left;
-        origTop = rect.top;
-        // Detach from fixed positioning model
+        startX = clientX; startY = clientY;
+        origLeft = rect.left; origTop = rect.top;
         sidebar.style.left = rect.left + 'px';
         sidebar.style.top = rect.top + 'px';
         sidebar.style.bottom = 'auto';
         e.preventDefault();
-      });
-
-      document.addEventListener('mousemove', function(e) {
+      }
+      function onMove(clientX, clientY) {
         if (!dragging) return;
-        var dx = e.clientX - startX;
-        var dy = e.clientY - startY;
-        var newLeft = Math.max(0, Math.min(window.innerWidth - 60, origLeft + dx));
-        var newTop = Math.max(0, Math.min(window.innerHeight - 60, origTop + dy));
-        sidebar.style.left = newLeft + 'px';
-        sidebar.style.top = newTop + 'px';
-      });
-
-      document.addEventListener('mouseup', function() {
+        sidebar.style.left = Math.max(0, Math.min(window.innerWidth - 60, origLeft + (clientX - startX))) + 'px';
+        sidebar.style.top = Math.max(0, Math.min(window.innerHeight - 60, origTop + (clientY - startY))) + 'px';
+      }
+      function onEnd() {
         if (!dragging) return;
         dragging = false;
         sidebar.classList.remove('chat-dragging');
-      });
+      }
 
-      // Touch support for drag
+      // Mouse events
+      handle.addEventListener('mousedown', function(e) { onStart(e.clientX, e.clientY, e); });
+      document.addEventListener('mousemove', function(e) { onMove(e.clientX, e.clientY); });
+      document.addEventListener('mouseup', onEnd);
+
+      // Touch events
       handle.addEventListener('touchstart', function(e) {
-        if (e.target.closest('button')) return;
-        var touch = e.touches[0];
-        dragging = true;
-        sidebar.classList.add('chat-dragging');
-        var rect = sidebar.getBoundingClientRect();
-        startX = touch.clientX;
-        startY = touch.clientY;
-        origLeft = rect.left;
-        origTop = rect.top;
-        sidebar.style.left = rect.left + 'px';
-        sidebar.style.top = rect.top + 'px';
-        sidebar.style.bottom = 'auto';
-      }, { passive: true });
-
-      handle.addEventListener('touchmove', function(e) {
+        var t = e.touches[0];
+        onStart(t.clientX, t.clientY, e);
+      }, { passive: false });
+      document.addEventListener('touchmove', function(e) {
         if (!dragging) return;
-        var touch = e.touches[0];
-        var dx = touch.clientX - startX;
-        var dy = touch.clientY - startY;
-        var newLeft = Math.max(0, Math.min(window.innerWidth - 60, origLeft + dx));
-        var newTop = Math.max(0, Math.min(window.innerHeight - 60, origTop + dy));
-        sidebar.style.left = newLeft + 'px';
-        sidebar.style.top = newTop + 'px';
-      }, { passive: true });
-
-      handle.addEventListener('touchend', function() {
-        if (!dragging) return;
-        dragging = false;
-        sidebar.classList.remove('chat-dragging');
-      });
-    })();
-
-    // ── Resizable chat sidebar (desktop only) ──
-    (function initChatResize() {
-      var resizeHandle = document.getElementById('chatResizeHandle');
-      if (!resizeHandle || window.innerWidth <= 600) return;
-      var resizing = false, startX, startY, origW, origH;
-
-      resizeHandle.addEventListener('mousedown', function(e) {
-        resizing = true;
-        sidebar.classList.add('chat-dragging');
-        origW = sidebar.offsetWidth;
-        origH = sidebar.offsetHeight;
-        startX = e.clientX;
-        startY = e.clientY;
+        var t = e.touches[0];
+        onMove(t.clientX, t.clientY);
         e.preventDefault();
-      });
-
-      document.addEventListener('mousemove', function(e) {
-        if (!resizing) return;
-        var newW = Math.max(240, origW + (e.clientX - startX));
-        var newH = Math.max(300, origH + (e.clientY - startY));
-        sidebar.style.width = Math.min(newW, window.innerWidth * 0.9) + 'px';
-        sidebar.style.height = Math.min(newH, window.innerHeight * 0.96) + 'px';
-        sidebar.style.bottom = 'auto';
-      });
-
-      document.addEventListener('mouseup', function() {
-        if (!resizing) return;
-        resizing = false;
-        sidebar.classList.remove('chat-dragging');
-      });
+      }, { passive: false });
+      document.addEventListener('touchend', onEnd);
     })();
 
-    // ── Expand / shrink toggle ──
-    var expandToggle = document.getElementById('chatExpandToggle');
+    // Expand / shrink toggle
+    var expandToggle = document.getElementById('streamExpandToggle');
     if (expandToggle) {
       expandToggle.addEventListener('click', function() {
         var expanded = sidebar.classList.toggle('chat-expanded');
         expandToggle.textContent = expanded ? '⤡' : '⤢';
         expandToggle.title = expanded ? 'Shrink' : 'Expand';
-        if (expanded) {
-          sidebar.style.width = '';
-          sidebar.style.height = '';
-        }
+        if (expanded) { sidebar.style.width = ''; sidebar.style.height = ''; }
       });
     }
-
-    // Submit message — Q34: blur input on mobile to dismiss keyboard
-    if (form) form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      if (!input) return;
-      var text = input.value.trim();
-      if (!text) return;
-      sendChatMessage(text);
-      input.value = '';
-      // Q34: dismiss keyboard on mobile after send
-      if (window.innerWidth <= 600) input.blur();
-      var dropdown = $('#chatMentionDropdown');
-      if (dropdown) dropdown.classList.add('hidden');
-    });
-
-    // Typing indicator + @mention autocomplete
-    if (input) {
-      input.addEventListener('input', function() {
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(function() { sendTyping(); }, 400);
-        updateMentionAutocomplete(input);
-        showSlashHints(input);
-      });
-
-      input.addEventListener('keydown', function(e) {
-        var dropdown = $('#chatMentionDropdown');
-        if (!dropdown || dropdown.classList.contains('hidden')) return;
-        var items = dropdown.querySelectorAll('.chat-mention-item');
-        if (items.length === 0) return;
-
-        if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          chatMentionIdx = Math.min(chatMentionIdx + 1, items.length - 1);
-          items.forEach(function(it, i) { it.classList.toggle('active', i === chatMentionIdx); });
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          chatMentionIdx = Math.max(chatMentionIdx - 1, 0);
-          items.forEach(function(it, i) { it.classList.toggle('active', i === chatMentionIdx); });
-        } else if (e.key === 'Tab' || e.key === 'Enter') {
-          if (chatMentionIdx >= 0 && items[chatMentionIdx]) {
-            e.preventDefault();
-            applyMention(input, items[chatMentionIdx].dataset.name);
-          }
-        } else if (e.key === 'Escape') {
-          dropdown.classList.add('hidden');
-          chatMentionIdx = -1;
-        }
-      });
-    }
-
-    // Emoji toggle
-    if (emojiToggle && emojiPicker) {
-      emojiToggle.addEventListener('click', function() {
-        emojiPicker.classList.toggle('hidden');
-      });
-    }
-
-    // Emoji buttons insert into input
-    if (emojiPicker && input) {
-      emojiPicker.addEventListener('click', function(e) {
-        var btn = e.target.closest('.chat-emoji-btn');
-        if (!btn) return;
-        var emoji = btn.dataset.emoji;
-        if (!emoji) return;
-        input.value += emoji;
-        input.focus();
-      });
-    }
-
-    // Sound toggle
-    var soundToggle = $('#chatSoundToggle');
-    if (soundToggle) {
-      soundToggle.addEventListener('click', function() {
-        chatSoundEnabled = !chatSoundEnabled;
-        soundToggle.textContent = chatSoundEnabled ? '🔔' : '🔕';
-        soundToggle.title = chatSoundEnabled ? 'Mute notifications' : 'Unmute notifications';
-      });
-    }
-
-    // Reply bar close
-    var replyClose = $('#chatReplyClose');
-    if (replyClose) replyClose.addEventListener('click', clearReply);
-
-    // Scroll FAB
-    var scrollFab = $('#chatScrollFab');
-    if (scrollFab) scrollFab.addEventListener('click', scrollChatToBottom);
-
-    // Smart scroll detection
-    var feed = $('#chatMessages');
-    if (feed) {
-      feed.addEventListener('scroll', function() {
-        var atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 60;
-        if (atBottom) hideScrollFAB();
-      });
-    }
-
-    // @Mention dropdown click
-    var mentionDropdown = $('#chatMentionDropdown');
-    if (mentionDropdown) {
-      mentionDropdown.addEventListener('click', function(e) {
-        var item = e.target.closest('.chat-mention-item');
-        if (item && input) {
-          applyMention(input, item.dataset.name);
-        }
-      });
-    }
-
-    // Delegate: reaction trigger, reply, delete buttons & reaction pills
-    document.addEventListener('click', function(e) {
-      // Reply button
-      var replyBtn = e.target.closest('.chat-reply-btn');
-      if (replyBtn) {
-        e.stopPropagation();
-        setReply(replyBtn.dataset.msgid, replyBtn.dataset.name, replyBtn.dataset.text);
-        return;
-      }
-      // Delete button
-      var deleteBtn = e.target.closest('.chat-delete-btn');
-      if (deleteBtn) {
-        e.stopPropagation();
-        sendChatDelete(deleteBtn.dataset.msgid);
-        return;
-      }
-      // Reaction trigger (emoji face on hover)
-      var trigger = e.target.closest('.chat-react-trigger');
-      if (trigger) {
-        e.stopPropagation();
-        var mid = trigger.dataset.msgid;
-        if (chatReactTarget === mid) { closeReactPopup(); return; }
-        showReactPopup(mid, trigger);
-        return;
-      }
-      // Reaction pill click (toggle own reaction)
-      var pill = e.target.closest('.chat-reaction');
-      if (pill) {
-        e.stopPropagation();
-        sendChatReaction(pill.dataset.msgid, pill.dataset.emoji);
-        return;
-      }
-      // Click on reply preview scrolls to original
-      var replyPreview = e.target.closest('.chat-reply-preview');
-      if (replyPreview) {
-        var origId = replyPreview.dataset.replyTo;
-        var origMsg = document.querySelector('.chat-msg[data-msgid="' + origId + '"]');
-        if (origMsg) {
-          origMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          origMsg.classList.add('chat-msg-highlight');
-          setTimeout(function() { origMsg.classList.remove('chat-msg-highlight'); }, 1500);
-        }
-        return;
-      }
-      // Click elsewhere closes popup
-      closeReactPopup();
-    });
-
-    // Poll vote clicks
-    document.addEventListener('click', function(e) {
-      var opt = e.target.closest('.chat-poll-option');
-      if (opt && !opt.disabled) {
-        var card = opt.closest('.chat-poll-card');
-        if (card && !card.classList.contains('chat-poll-ended')) {
-          var pollId = card.dataset.pollid;
-          var option = opt.dataset.option;
-          if (ws && ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: 'chat_poll_vote', pollId: pollId, option: option }));
-          }
-          // Visual feedback
-          card.querySelectorAll('.chat-poll-option').forEach(function(o) { o.classList.remove('chat-poll-voted'); });
-          opt.classList.add('chat-poll-voted');
-        }
-      }
-    });
-
-    // Slash hint click
-    var slashHints = $('#chatSlashHints');
-    if (slashHints) {
-      slashHints.addEventListener('click', function(e) {
-        var item = e.target.closest('.chat-slash-item');
-        if (item && input) {
-          input.value = item.dataset.cmd + ' ';
-          input.focus();
-          slashHints.classList.add('hidden');
-        }
-      });
-    }
-
-    // Periodically refresh online users for @mention
-    requestOnlineUsers();
-    setInterval(requestOnlineUsers, 15000);
   }
 
   // ─── PVP DUEL ARENA ────────────────────────────────────────────────────
@@ -6060,19 +5795,45 @@
     });
   }
 
+  var myStreamCam = null; // MediaStream for streamer's camera
+
   async function handleGoLive() {
     if (!player) return;
     const title = ($('#streamTitleInput') || {}).value || `${player.name}'s Stream`;
-    const res = await api('stream-start', { playerId: player.id, title });
-    if (res.error) { showBonus(res.error); return; }
+    const camOn = $('#streamCamToggle') && $('#streamCamToggle').checked;
+
+    // Request camera before going live
+    if (camOn) {
+      try {
+        myStreamCam = await navigator.mediaDevices.getUserMedia({ video: { width: 240, height: 180, facingMode: 'user' }, audio: false });
+        // Show local preview in the PiP video
+        const pip = $('#streamCamPip');
+        if (pip) { pip.srcObject = myStreamCam; pip.classList.remove('hidden'); }
+      } catch (err) {
+        showBonus('📷 Camera access denied — streaming game only.');
+        myStreamCam = null;
+      }
+    }
+
+    const res = await api('stream-start', { playerId: player.id, title, hasCam: !!myStreamCam });
+    if (res.error) { showBonus(res.error); stopCamera(); return; }
     myStreamId = res.streamId;
     activeStreamId = res.streamId;
-    showBonus('🔴 You are LIVE! Start playing to stream.');
+    showBonus(myStreamCam ? '🔴 You are LIVE with camera!' : '🔴 You are LIVE! Start playing to stream.');
     $('#btnGoLive').classList.add('hidden');
     $('#btnEndStream').classList.remove('hidden');
     // Enter viewer as streamer
     enterStreamView(res.stream, true);
     fetchStreams();
+  }
+
+  function stopCamera() {
+    if (myStreamCam) {
+      myStreamCam.getTracks().forEach(t => t.stop());
+      myStreamCam = null;
+    }
+    const pip = $('#streamCamPip');
+    if (pip) { pip.srcObject = null; pip.classList.add('hidden'); }
   }
 
   async function handleEndStream() {
@@ -6082,6 +5843,7 @@
     const earnings = ((res.earnings || 0) / 100).toFixed(2);
     showBonus(`⏹️ Stream ended! You earned $${earnings}`);
     stopStreamBroadcast();
+    stopCamera();
     myStreamId = null;
     activeStreamId = null;
     $('#btnGoLive').classList.remove('hidden');
@@ -6348,10 +6110,10 @@
     );
   }
 
-  // Stream broadcasting — streamer sends canvas frames via WS
+  // Stream broadcasting — streamer sends canvas frames (+ optional cam) via WS
+  var camCaptureCanvas = null;
   function startStreamBroadcast() {
     if (streamFrameInterval) clearInterval(streamFrameInterval);
-    // Broadcast every 200ms (5fps) — low bandwidth canvas snapshots
     streamFrameInterval = setInterval(() => {
       if (!myStreamId || !ws || ws.readyState !== 1) return;
       const canvas = document.querySelector('#gameCanvas');
@@ -6359,7 +6121,18 @@
       try {
         const frame = canvas.toDataURL('image/jpeg', 0.3);
         const scoreEl = $('#mineGold');
-        ws.send(JSON.stringify({ type: 'stream_frame', streamId: myStreamId, frame, score: scoreEl ? scoreEl.textContent : '0' }));
+        var camFrame = null;
+        // Capture camera frame if cam is active
+        if (myStreamCam) {
+          var pip = $('#streamCamPip');
+          if (pip && pip.videoWidth) {
+            if (!camCaptureCanvas) { camCaptureCanvas = document.createElement('canvas'); camCaptureCanvas.width = 120; camCaptureCanvas.height = 90; }
+            var cctx = camCaptureCanvas.getContext('2d');
+            cctx.drawImage(pip, 0, 0, 120, 90);
+            camFrame = camCaptureCanvas.toDataURL('image/jpeg', 0.4);
+          }
+        }
+        ws.send(JSON.stringify({ type: 'stream_frame', streamId: myStreamId, frame, camFrame: camFrame, score: scoreEl ? scoreEl.textContent : '0' }));
       } catch {}
     }, 500);
     // Tell server we're playing
@@ -6403,6 +6176,17 @@
         }
         const scoreOv = $('#streamScoreOverlay');
         if (scoreOv) scoreOv.textContent = 'Score: ' + (msg.score || '0');
+        // Draw cam PiP if streamer has camera
+        const camPipCanvas = $('#streamCamPipCanvas');
+        if (msg.camFrame && camPipCanvas) {
+          camPipCanvas.classList.remove('hidden');
+          const cctx = camPipCanvas.getContext('2d');
+          const cimg = new Image();
+          cimg.onload = () => cctx.drawImage(cimg, 0, 0, camPipCanvas.width, camPipCanvas.height);
+          cimg.src = msg.camFrame;
+        } else if (camPipCanvas && !msg.camFrame) {
+          camPipCanvas.classList.add('hidden');
+        }
         // Update viewer count + hype from piggybacked data
         if (msg.viewers !== undefined) {
           const vc = $('#streamViewerCount');

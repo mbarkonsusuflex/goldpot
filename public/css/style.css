@@ -5389,9 +5389,53 @@ body {
 
 /* ─── GOLDPOT LIVE — Streaming ─────────────────────────────────────────── */
 .stream-section {
-  margin: 2rem auto;
-  max-width: 900px;
-  padding: 0 1rem;
+  margin: 0; max-width: none; padding: 0;
+}
+
+/* Stream Sidebar Body — scrollable content area */
+.stream-sidebar-body {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  padding: 8px 12px; display: flex; flex-direction: column; gap: 10px;
+  -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+}
+.stream-stats-sidebar {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+  padding: 6px 0; font-size: 0.72rem;
+}
+.stream-stats-sidebar .stream-stat { font-size: 0.72rem; }
+.stream-go-live-sidebar {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.stream-go-live-sidebar .stream-title-input {
+  font-size: 0.82rem; padding: 8px 10px;
+}
+.stream-go-live-btns {
+  display: flex; gap: 6px;
+}
+.stream-go-live-btns .btn-gold { flex: 1; font-size: 0.78rem; padding: 8px; }
+.stream-list-sidebar { }
+.stream-list-title-sm {
+  font-size: 0.75rem; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;
+}
+
+/* When stream viewer is open inside sidebar, make it fill */
+.stream-sidebar-body .stream-viewer {
+  margin: 0; border-radius: var(--radius-sm); flex: 1;
+  display: flex; flex-direction: column;
+}
+.stream-sidebar-body .stream-viewer .stream-viewer-body {
+  flex-direction: column;
+}
+.stream-sidebar-body .stream-viewer .stream-canvas-wrap {
+  width: 100%; max-height: 260px;
+}
+.stream-sidebar-body .stream-viewer .stream-canvas {
+  width: 100%; height: auto; max-height: 260px;
+}
+.stream-sidebar-body .stream-viewer .stream-sidebar {
+  width: 100%; border-left: none; border-top: 1px solid var(--border);
+  max-height: none; overflow-y: auto;
 }
 .stream-header {
   text-align: center;
@@ -5647,6 +5691,49 @@ body {
   padding: .35rem .8rem;
   border-radius: 8px;
   border: 1px solid rgba(240,192,64,.2);
+}
+/* Camera toggle in Go Live card */
+.stream-cam-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .8rem;
+  color: #ccc;
+  padding: 4px 0 2px;
+  cursor: pointer;
+  user-select: none;
+}
+.stream-cam-toggle input[type="checkbox"] {
+  accent-color: #f0c040;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+/* Camera PiP overlays (streamer preview + viewer canvas) */
+.stream-cam-pip {
+  position: absolute;
+  bottom: 52px;
+  right: 10px;
+  width: 120px;
+  height: 90px;
+  border-radius: 8px;
+  border: 2px solid rgba(240,192,64,.5);
+  object-fit: cover;
+  z-index: 6;
+  box-shadow: 0 2px 12px rgba(0,0,0,.6);
+  background: #111;
+}
+#streamCamPipCanvas {
+  position: absolute;
+  bottom: 52px;
+  right: 10px;
+  width: 120px;
+  height: 90px;
+  border-radius: 8px;
+  border: 2px solid rgba(240,192,64,.5);
+  z-index: 6;
+  box-shadow: 0 2px 12px rgba(0,0,0,.6);
+  background: #111;
 }
 .stream-expand-btn {
   position: absolute;
@@ -6326,11 +6413,11 @@ body {
     opacity: 0.92;
   }
   /* Drag handle cursor on header */
-  #chatDragHandle {
+  #streamDragHandle {
     cursor: grab;
   }
-  #chatDragHandle:active,
-  .chat-sidebar.chat-dragging #chatDragHandle {
+  #streamDragHandle:active,
+  .chat-sidebar.chat-dragging #streamDragHandle {
     cursor: grabbing;
   }
   /* Resize handle — bottom-right corner */
@@ -6354,6 +6441,12 @@ body {
     width: 480px !important;
     height: 80vh !important;
   }
+}
+/* Drag state works on all screen sizes */
+.chat-sidebar.chat-dragging {
+  transition: none;
+  user-select: none;
+  opacity: 0.92;
 }
 /* Hide resize handle on mobile */
 @media (max-width: 600px) {

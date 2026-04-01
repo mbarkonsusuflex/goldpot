@@ -232,7 +232,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '0');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');  
   res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://js.stripe.com https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' wss: https://fonts.googleapis.com https://fonts.gstatic.com https://api.stripe.com https://pagead2.googlesyndication.com https://ep1.adtrafficquality.google; frame-src https://js.stripe.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com; frame-ancestors 'none'");
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('X-DNS-Prefetch-Control', 'off');
@@ -5632,7 +5632,7 @@ function startServer(port) {
               // Only send to viewers of this stream
               for (const client of wsClients) {
                 if (client !== ws && client.watchingStream === parsed.streamId && client.readyState === 1) {
-                  client.send(JSON.stringify({ type: 'stream_frame', frame: parsed.frame, score: parsed.score, viewers: stream.viewers, hypeLevel: stream.hypeLevel, hypeProgress: stream.hypeProgress, hypeGoal: HYPE_TRAIN_LEVELS[Math.min(stream.hypeLevel, HYPE_TRAIN_LEVELS.length - 1)]?.threshold || 5 }));
+                  client.send(JSON.stringify({ type: 'stream_frame', frame: parsed.frame, camFrame: parsed.camFrame || null, score: parsed.score, viewers: stream.viewers, hypeLevel: stream.hypeLevel, hypeProgress: stream.hypeProgress, hypeGoal: HYPE_TRAIN_LEVELS[Math.min(stream.hypeLevel, HYPE_TRAIN_LEVELS.length - 1)]?.threshold || 5 }));
                 }
               }
             }

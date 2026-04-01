@@ -1335,72 +1335,124 @@
     </div>
   </div>
 
-  <!-- ═══ LIVE CHAT — LEFT SIDEBAR ═══ -->
-  <aside id="chatSidebar" class="chat-sidebar hidden">
-    <div class="chat-sidebar-header" id="chatDragHandle">
+  <!-- ═══ GOLDPOT LIVE — STREAM SIDEBAR ═══ -->
+  <aside id="streamSidebar" class="chat-sidebar hidden">
+    <div class="chat-sidebar-header" id="streamDragHandle">
       <div class="chat-sidebar-header-left">
-        <span class="chat-sidebar-dot"></span>
-        <span class="chat-sidebar-title">LIVE CHAT</span>
-        <span class="chat-sidebar-online" id="chatOnline">0 online</span>
+        <span class="chat-sidebar-dot" style="background:var(--red)"></span>
+        <span class="chat-sidebar-title">GOLDPOT LIVE</span>
+        <span class="chat-sidebar-online" id="streamOnlineCount">0 live</span>
       </div>
       <div class="chat-sidebar-header-right">
-        <button class="chat-header-btn" id="chatExpandToggle" aria-label="Expand chat" title="Expand">⤢</button>
-        <button class="chat-header-btn" id="chatSoundToggle" aria-label="Toggle sound" title="Mute notifications">🔔</button>
-        <button class="chat-sidebar-collapse" id="chatCollapse" aria-label="Collapse chat">‹</button>
+        <button class="chat-header-btn" id="streamExpandToggle" aria-label="Expand" title="Expand">⤢</button>
+        <button class="chat-sidebar-collapse" id="streamCollapse" aria-label="Collapse stream panel">‹</button>
       </div>
     </div>
-    <!-- Resize handle -->
-    <div class="chat-resize-handle" id="chatResizeHandle"></div>
-    <div class="chat-feed" id="chatMessages" role="log" aria-live="polite" aria-label="Chat messages">
-      <div class="chat-empty">No messages yet — say hi! 👋</div>
+    <div class="stream-sidebar-body" id="streamSidebarBody">
+      <!-- Stream Stats -->
+      <div class="stream-stats-bar stream-stats-sidebar" id="streamStatsBar">
+        <span class="stream-stat">🔴 <strong id="streamLiveCt">0</strong> Live</span>
+        <span class="stream-stat">💬 <strong id="streamTotalSC">0</strong> SC</span>
+        <span class="stream-stat">🎁 <strong id="streamTotalGifts">0</strong> Gifts</span>
+        <span class="stream-stat">💰 $<strong id="streamTotalRevenue">0</strong></span>
+      </div>
+
+      <!-- Go Live Card -->
+      <div class="stream-go-live-sidebar">
+        <input type="text" class="stream-title-input" id="streamTitleInput" placeholder="Stream title..." maxlength="60" aria-label="Stream title">
+        <label class="stream-cam-toggle">
+          <input type="checkbox" id="streamCamToggle"> 📷 Show my camera
+        </label>
+        <div class="stream-go-live-btns">
+          <button class="btn-gold stream-go-live-btn" id="btnGoLive">🔴 GO LIVE</button>
+          <button class="btn-gold stream-end-btn hidden" id="btnEndStream">⏹️ END</button>
+        </div>
+      </div>
+
+      <!-- Live Streams List -->
+      <div class="stream-list-sidebar">
+        <div class="stream-list-title-sm">📺 LIVE STREAMS</div>
+        <div class="stream-list" id="streamList">
+          <div class="stream-empty">No streams live yet — be the first!</div>
+        </div>
+      </div>
+
+      <!-- Stream Viewer (shown when watching) -->
+      <div class="stream-viewer hidden" id="streamViewer">
+        <div class="stream-viewer-header">
+          <span class="stream-live-badge">🔴 LIVE</span>
+          <span class="stream-viewer-title" id="streamViewerTitle">Stream</span>
+          <span class="stream-viewer-count">👁️ <span id="streamViewerCount">0</span></span>
+          <span class="stream-uptime" id="streamUptime">⏱ 0:00</span>
+          <button class="stream-leave-btn" id="btnLeaveStream">✕</button>
+        </div>
+        <div class="stream-viewer-body">
+          <div class="stream-canvas-wrap">
+            <canvas class="stream-canvas" id="streamCanvas" width="360" height="300"></canvas>
+            <div class="stream-score-overlay" id="streamScoreOverlay">Score: 0</div>
+            <div class="stream-gift-overlay" id="streamGiftOverlay"></div>
+            <video class="stream-cam-pip hidden" id="streamCamPip" autoplay muted playsinline></video>
+            <canvas class="stream-cam-pip hidden" id="streamCamPipCanvas" width="120" height="90"></canvas>
+            <button class="stream-expand-btn" id="btnStreamExpand" title="Expand">⛶</button>
+          </div>
+          <div class="stream-sidebar">
+            <!-- Chat -->
+            <div class="stream-chat-section">
+              <div class="stream-chat-title">💬 CHAT</div>
+              <div class="stream-chat-list" id="streamChatList"></div>
+              <div class="stream-chat-input-wrap">
+                <input type="text" class="stream-chat-input" id="streamChatInput" placeholder="Say something..." maxlength="200" aria-label="Chat message">
+                <button class="stream-chat-send" id="btnStreamChatSend">➤</button>
+              </div>
+            </div>
+            <!-- Super Chat -->
+            <div class="stream-sc-feed" id="streamSCFeed">
+              <div class="stream-sc-title">⭐ SUPER CHATS</div>
+              <div class="stream-sc-list" id="streamSCList"></div>
+            </div>
+            <div class="stream-sc-buy">
+              <input type="text" class="stream-sc-input" id="streamSCInput" placeholder="Type your Super Chat..." maxlength="200" aria-label="Super Chat message">
+              <div class="stream-sc-tiers" id="streamSCTiers"></div>
+            </div>
+            <!-- Gifts -->
+            <div class="stream-gift-section">
+              <div class="stream-gift-title">🎁 SEND A GIFT</div>
+              <div class="stream-gift-grid" id="streamGiftGrid"></div>
+            </div>
+            <!-- Subscribe -->
+            <div class="stream-sub-section">
+              <button class="btn-gold stream-sub-btn" id="btnStreamSub">⭐ SUBSCRIBE — $1.99/mo</button>
+            </div>
+            <!-- Hype Train -->
+            <div class="stream-hype-section" id="streamHypeSection">
+              <div class="stream-hype-title">🔥 HYPE TRAIN — Level <span id="streamHypeLevel">0</span></div>
+              <div class="stream-hype-bar">
+                <div class="stream-hype-fill" id="streamHypeFill" style="width: 0%"></div>
+              </div>
+              <div class="stream-hype-reward" id="streamHypeReward"></div>
+            </div>
+            <!-- Top Gifters -->
+            <div class="stream-top-gifters">
+              <div class="stream-top-title">👑 TOP GIFTERS</div>
+              <div class="stream-top-list" id="streamTopGifters"></div>
+            </div>
+          </div>
+        </div>
+        <div class="stream-streamer-bar hidden" id="streamStreamerBar">
+          <span class="stream-earnings">💰 Earned: $<span id="streamMyEarnings">0.00</span></span>
+          <span class="stream-viewers-count">👁️ <span id="streamMyViewers">0</span> viewers</span>
+          <span class="stream-subs-count">⭐ <span id="streamMySubs">0</span> subs</span>
+        </div>
+      </div>
     </div>
-    <!-- Scroll-to-bottom FAB -->
-    <button class="chat-scroll-fab hidden" id="chatScrollFab" aria-label="Scroll to latest">↓ New messages</button>
-    <!-- @Mention autocomplete dropdown -->
-    <div class="chat-mention-dropdown hidden" id="chatMentionDropdown"></div>
-    <div class="chat-emoji-picker hidden" id="chatEmojiPicker">
-      <button class="chat-emoji-btn" data-emoji="🔥">🔥</button>
-      <button class="chat-emoji-btn" data-emoji="😂">😂</button>
-      <button class="chat-emoji-btn" data-emoji="❤️">❤️</button>
-      <button class="chat-emoji-btn" data-emoji="👀">👀</button>
-      <button class="chat-emoji-btn" data-emoji="🏆">🏆</button>
-      <button class="chat-emoji-btn" data-emoji="💰">💰</button>
-      <button class="chat-emoji-btn" data-emoji="🎉">🎉</button>
-      <button class="chat-emoji-btn" data-emoji="👑">👑</button>
-      <button class="chat-emoji-btn" data-emoji="💎">💎</button>
-      <button class="chat-emoji-btn" data-emoji="⚡">⚡</button>
-      <button class="chat-emoji-btn" data-emoji="🤑">🤑</button>
-      <button class="chat-emoji-btn" data-emoji="🙌">🙌</button>
-    </div>
-    <div class="chat-typing hidden" id="chatTyping" role="status" aria-live="polite">
-      <span class="chat-typing-dots"><span></span><span></span><span></span></span>
-      <span class="chat-typing-text" id="chatTypingText">Someone is typing...</span>
-    </div>
-    <!-- Slash command hints -->
-    <div class="chat-slash-hints hidden" id="chatSlashHints"></div>
-    <!-- Reply bar -->
-    <div class="chat-reply-bar hidden" id="chatReplyBar">
-      <span class="chat-reply-bar-icon">↩</span>
-      <span class="chat-reply-bar-label">Replying to <strong class="chat-reply-bar-name"></strong></span>
-      <span class="chat-reply-bar-text"></span>
-      <button class="chat-reply-bar-close" id="chatReplyClose" aria-label="Cancel reply">✕</button>
-    </div>
-    <!-- Message input form -->
-    <form class="chat-sidebar-input" id="chatForm" autocomplete="off">
-      <button type="button" class="chat-emoji-toggle" id="chatEmojiToggle" aria-label="Emoji">😀</button>
-      <input type="text" class="chat-input" id="chatInput" placeholder="Type a message... (/ for commands)" maxlength="200" autocomplete="off" aria-label="Chat message" />
-      <button type="submit" class="chat-send" aria-label="Send">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-      </button>
-    </form>
   </aside>
-  <!-- Collapsed chat tab -->
-  <button id="chatExpandBtn" class="chat-expand-btn hidden" aria-label="Open chat">
-    💬 <span class="chat-expand-badge hidden" id="chatBadge">0</span>
+  <!-- Collapsed stream tab -->
+  <button id="streamExpandBtn" class="chat-expand-btn hidden" aria-label="Open streams">
+    📺 <span class="chat-expand-badge hidden" id="streamBadge">0</span>
   </button>
-  <!-- Q40: Chat floating bubble (mobile) -->
-  <button id="chatBubble" class="chat-bubble hidden" aria-label="Open chat">
-    💬<span class="chat-bubble-badge hidden" id="chatBubbleBadge">0</span>
+  <!-- Stream floating bubble (mobile) -->
+  <button id="streamBubble" class="chat-bubble hidden" aria-label="Open streams">
+    📺<span class="chat-bubble-badge hidden" id="streamBubbleBadge">0</span>
   </button>
 
   <!-- GIFT ENTRIES MODAL -->
@@ -1554,103 +1606,6 @@
     </div>
   </div>
 
-  <!-- GOLDPOT LIVE — STREAMING SECTION -->
-  <section class="stream-section" id="streamSection">
-    <div class="stream-header">
-      <h2 class="stream-title">📺 GOLDPOT LIVE</h2>
-      <p class="stream-sub">Watch miners dig in real-time. Send Super Chats & Gifts!</p>
-      <div class="stream-stats-bar" id="streamStatsBar">
-        <span class="stream-stat">🔴 <strong id="streamLiveCt">0</strong> Live Now</span>
-        <span class="stream-stat">💬 <strong id="streamTotalSC">0</strong> Super Chats</span>
-        <span class="stream-stat">🎁 <strong id="streamTotalGifts">0</strong> Gifts Sent</span>
-        <span class="stream-stat">💰 $<strong id="streamTotalRevenue">0</strong> Earned</span>
-      </div>
-    </div>
-
-    <!-- GO LIVE BUTTON -->
-    <div class="stream-go-live-card">
-      <h3 class="stream-go-live-title">🎬 GO LIVE</h3>
-      <p class="stream-go-live-desc">Stream your gameplay and earn 70% of all tips, gifts & subs!</p>
-      <input type="text" class="stream-title-input" id="streamTitleInput" placeholder="Enter your stream title..." maxlength="60" aria-label="Stream title">
-      <button class="btn-gold stream-go-live-btn" id="btnGoLive">🔴 START STREAMING</button>
-      <button class="btn-gold stream-end-btn hidden" id="btnEndStream">⏹️ END STREAM</button>
-    </div>
-
-    <!-- LIVE STREAMS LIST -->
-    <div class="stream-list-card">
-      <h3 class="stream-list-title">📺 LIVE STREAMS</h3>
-      <div class="stream-list" id="streamList">
-        <div class="stream-empty">No streams live yet — be the first to go live!</div>
-      </div>
-    </div>
-
-    <!-- STREAM VIEWER (shown when watching) -->
-    <div class="stream-viewer hidden" id="streamViewer">
-      <div class="stream-viewer-header">
-        <span class="stream-live-badge">🔴 LIVE</span>
-        <span class="stream-viewer-title" id="streamViewerTitle">Stream</span>
-        <span class="stream-viewer-count">👁️ <span id="streamViewerCount">0</span></span>
-        <span class="stream-uptime" id="streamUptime">⏱ 0:00</span>
-        <button class="stream-leave-btn" id="btnLeaveStream">✕</button>
-      </div>
-      <div class="stream-viewer-body">
-        <div class="stream-canvas-wrap">
-          <canvas class="stream-canvas" id="streamCanvas" width="360" height="450"></canvas>
-          <div class="stream-score-overlay" id="streamScoreOverlay">Score: 0</div>
-          <div class="stream-gift-overlay" id="streamGiftOverlay"></div>
-          <button class="stream-expand-btn" id="btnStreamExpand" title="Expand">⛶</button>
-        </div>
-        <div class="stream-sidebar">
-          <!-- Free Chat -->
-          <div class="stream-chat-section">
-            <div class="stream-chat-title">💬 CHAT</div>
-            <div class="stream-chat-list" id="streamChatList"></div>
-            <div class="stream-chat-input-wrap">
-              <input type="text" class="stream-chat-input" id="streamChatInput" placeholder="Say something..." maxlength="200" aria-label="Chat message">
-              <button class="stream-chat-send" id="btnStreamChatSend">➤</button>
-            </div>
-          </div>
-          <!-- Super Chat Feed -->
-          <div class="stream-sc-feed" id="streamSCFeed">
-            <div class="stream-sc-title">⭐ SUPER CHATS</div>
-            <div class="stream-sc-list" id="streamSCList"></div>
-          </div>
-          <!-- Super Chat Purchase -->
-          <div class="stream-sc-buy">
-            <input type="text" class="stream-sc-input" id="streamSCInput" placeholder="Type your Super Chat..." maxlength="200" aria-label="Super Chat message">
-            <div class="stream-sc-tiers" id="streamSCTiers"></div>
-          </div>
-          <!-- Gift Picker -->
-          <div class="stream-gift-section">
-            <div class="stream-gift-title">🎁 SEND A GIFT</div>
-            <div class="stream-gift-grid" id="streamGiftGrid"></div>
-          </div>
-          <!-- Subscribe -->
-          <div class="stream-sub-section">
-            <button class="btn-gold stream-sub-btn" id="btnStreamSub">⭐ SUBSCRIBE — $1.99/mo</button>
-          </div>
-          <!-- Hype Train -->
-          <div class="stream-hype-section" id="streamHypeSection">
-            <div class="stream-hype-title">🔥 HYPE TRAIN — Level <span id="streamHypeLevel">0</span></div>
-            <div class="stream-hype-bar">
-              <div class="stream-hype-fill" id="streamHypeFill" style="width: 0%"></div>
-            </div>
-            <div class="stream-hype-reward" id="streamHypeReward"></div>
-          </div>
-          <!-- Top Gifters -->
-          <div class="stream-top-gifters">
-            <div class="stream-top-title">👑 TOP GIFTERS</div>
-            <div class="stream-top-list" id="streamTopGifters"></div>
-          </div>
-        </div>
-      </div>
-      <div class="stream-streamer-bar hidden" id="streamStreamerBar">
-        <span class="stream-earnings">💰 Earned: $<span id="streamMyEarnings">0.00</span></span>
-        <span class="stream-viewers-count">👁️ <span id="streamMyViewers">0</span> viewers</span>
-        <span class="stream-subs-count">⭐ <span id="streamMySubs">0</span> subs</span>
-      </div>
-    </div>
-  </section>
   </main>
 
   <script src="https://js.stripe.com/v3/" async></script>
