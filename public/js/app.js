@@ -485,6 +485,8 @@
     if (errEl) { errEl.classList.add('hidden'); errEl.textContent = ''; }
     var emailInput = $('#signInEmailInput');
     if (emailInput) { emailInput.value = ''; setTimeout(() => emailInput.focus(), 300); }
+    var passwordInput = $('#signInPasswordInput');
+    if (passwordInput) { passwordInput.value = ''; }
 
     // Wire sign-in button
     var btn = $('#btnSignIn');
@@ -492,6 +494,7 @@
 
     // Enter key
     if (emailInput) emailInput.onkeydown = (e) => { if (e.key === 'Enter') handleSignIn(); };
+    if (passwordInput) passwordInput.onkeydown = (e) => { if (e.key === 'Enter') handleSignIn(); };
 
     // "Create one" link
     var regLink = $('#btnSignInToRegister');
@@ -527,11 +530,18 @@
       return;
     }
 
+    var passwordInput = $('#signInPasswordInput');
+    var password = (passwordInput ? passwordInput.value : '');
+    if (!password) {
+      if (errEl) { errEl.textContent = 'Enter your password'; errEl.classList.remove('hidden'); }
+      return;
+    }
+
     btn.classList.add('btn-loading');
     btn.disabled = true;
 
     try {
-      var data = await api('login', { email });
+      var data = await api('login', { email, password });
       btn.classList.remove('btn-loading');
       btn.disabled = false;
       if (data.error) {
@@ -1000,7 +1010,9 @@
       btn.disabled = true;
 
       // Register immediately
-      const data = await api('register', { name, email: email || undefined, state: stateVal, dateOfBirth: dob, referralCode: ref || undefined });
+      const password = ($('#playerPasswordInput') ? $('#playerPasswordInput').value : '');
+      if (!password || password.length < 6) { fieldErr($('#playerPasswordInput'), 'Password must be at least 6 characters'); if (navigator.vibrate) navigator.vibrate([30, 50, 30]); return; }
+      const data = await api('register', { name, email: email || undefined, state: stateVal, dateOfBirth: dob, referralCode: ref || undefined, password });
       btn.classList.remove('btn-loading');
       btn.disabled = false;
       if (data.error) return;

@@ -1,0 +1,93 @@
+ΓòöΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòù
+Γòæ       GOLDPOT SECURITY STRESS TEST ΓÇö HACKER SIMULATION     Γòæ
+ΓòÜΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓò¥
+Target: http://localhost:3099
+
+
+ΓöÇΓöÇΓöÇ T01: TOCTOU Race Conditions ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ù T01a: Free entry race ΓÇö SKIP - registration failed
+
+ΓöÇΓöÇΓöÇ T02: Self-Exclusion Bypass ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ù T02: Self-exclusion ΓÇö SKIP
+
+ΓöÇΓöÇΓöÇ T03: JWT Manipulation ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ù T03: JWT ΓÇö SKIP
+
+ΓöÇΓöÇΓöÇ T04: CSRF Bypass Attempts ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ù T04: CSRF ΓÇö SKIP
+
+ΓöÇΓöÇΓöÇ T05: Input Injection ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô T05a: XSS in player name ΓÇö Stored as: ""
+  Γ£ô T05b: SQL injection in name ΓÇö Status: 400
+  Γ£ô T05b2: DB intact after SQLi attempt ΓÇö State endpoint: 200
+  Γ£ô T05c: Prototype pollution via body ΓÇö Status: 400
+  Γ£ô T05d: Oversized payload (1MB) ΓÇö Status: 413
+  Γ£ô T05g: Null bytes in name ΓÇö Stored as: ""
+  Γ£ô T05h: Malformed JSON body ΓÇö Status: 400
+
+ΓöÇΓöÇΓöÇ T06: IDOR Attacks ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ù T06: IDOR ΓÇö SKIP
+
+ΓöÇΓöÇΓöÇ T07: Payment Exploitation ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ù T07: Payment ΓÇö SKIP
+
+ΓöÇΓöÇΓöÇ T08: Referral Farming ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ù T08: Referral ΓÇö SKIP
+
+ΓöÇΓöÇΓöÇ T09: Admin Endpoint Security ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô T09a: Draw without admin secret ΓÇö Status: 401
+  Γ£ô T09b: Draw with wrong secret ΓÇö Status: 401
+  Γ£ô T09c: Metrics without auth ΓÇö Status: 403
+  Γ£ô T09d: Admin brute-force rate limited ΓÇö Rate limited: true
+
+ΓöÇΓöÇΓöÇ T10: DoS Resilience ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô T10a: 100x concurrent /api/state ΓÇö 100/100 OK in 84ms
+  Γ£ô T10c: Mass registration (50x unique IPs) ΓÇö 0/50 registered in 88ms
+
+ΓöÇΓöÇΓöÇ T11: Path Traversal ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô T11-/../../etc/passwd: Path traversal: /../../etc/passwd ΓÇö Status: 200
+  Γ£ô T11-/..%2F..%2Fetc%2Fpasswd: Path traversal: /..%2F..%2Fetc%2Fpasswd ΓÇö Status: 200
+  Γ£ô T11-/public/../server.js: Path traversal: /public/../server.js ΓÇö Status: 200
+  Γ£ô T11-/public/../db.js: Path traversal: /public/../db.js ΓÇö Status: 200
+  Γ£ô T11-/public/../.env: Path traversal: /public/../.env ΓÇö Status: 200
+  Γ£ô T11-/public/../package.json: Path traversal: /public/../package.json ΓÇö Status: 200
+  Γ£ô T11-/.env: Path traversal: /.env ΓÇö Status: 200
+  Γ£ô T11-/server.js: Path traversal: /server.js ΓÇö Status: 200
+  Γ£ô T11-/db.js: Path traversal: /db.js ΓÇö Status: 200
+  Γ£ô T11-/goldpot.db: Path traversal: /goldpot.db ΓÇö Status: 200
+
+ΓöÇΓöÇΓöÇ T12: Header / HTTP Probes ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ù T12a: X-Forwarded-For with multiple IPs ΓÇö Status: 400
+  Γ£ô T12b: Host header injection ΓÇö Status: 200
+  Γ£ô T12c: Oversized header (64KB) ΓÇö Status: 431
+
+ΓöÇΓöÇΓöÇ T13: Deposit Limit Bypass ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ù T13: Deposit limit ΓÇö SKIP
+
+ΓòöΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòù
+Γòæ                    SECURITY REPORT                          Γòæ
+ΓòáΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòú
+Γòæ  Tests Run:     34
+Γòæ  Passed:        25
+Γòæ  FAILED:        9
+ΓòáΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòú
+Γòæ  VULNERABILITIES FOUND:
+Γòæ    Γ£ù T01a: Free entry race
+Γòæ      SKIP - registration failed
+Γòæ    Γ£ù T02: Self-exclusion
+Γòæ      SKIP
+Γòæ    Γ£ù T03: JWT
+Γòæ      SKIP
+Γòæ    Γ£ù T04: CSRF
+Γòæ      SKIP
+Γòæ    Γ£ù T06: IDOR
+Γòæ      SKIP
+Γòæ    Γ£ù T07: Payment
+Γòæ      SKIP
+Γòæ    Γ£ù T08: Referral
+Γòæ      SKIP
+Γòæ    Γ£ù T12a: X-Forwarded-For with multiple IPs
+Γòæ      Status: 400
+Γòæ    Γ£ù T13: Deposit limit
+Γòæ      SKIP
+ΓòÜΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓò¥

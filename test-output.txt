@@ -1,0 +1,88 @@
+
+ΓòöΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòù
+Γòæ     GOLDPOT REAL-WORLD STRESS & FUZZ TEST                  Γòæ
+ΓòÜΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓò¥
+Target: http://localhost:3099
+Users: 200 | Concurrency: 50
+
+
+ΓöÇΓöÇ Phase 1: Registration Storm ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô P1.1: Registration success rate (200/200) ΓÇö 100.0% registered
+
+ΓöÇΓöÇ Phase 2: Concurrent Gameplay ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô P2.1: Free entries (200 ok, 0 denied) ΓÇö 200 succeeded, 0 denied, 0 errors
+  Γ£ô P2.2: Double free entry blocked ΓÇö 50/50 correctly denied
+  Γ£ô P2.3: Daily bonus claims (100/100) ΓÇö 100 succeeded, 0 denied
+  Γ£ô P2.4: Spin wheel (100/100) ΓÇö 100 succeeded, 0 denied/rate-limited
+  Γ£ô P2.5: Ad entries (0/100) ΓÇö 0 succeeded, 100 denied
+  Γ£ô P2.6: Game bonus submissions (0/50) ΓÇö 0 accepted, 50 denied
+
+ΓöÇΓöÇ Phase 3: State Consistency ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô P3.1: State fetches (200/200) ΓÇö 200 succeeded
+  Γ£ô P3.2: Pot structure consistent across users ΓÇö 1 unique pot structures
+  Γ£ô P3.3: No negative entry/pot values ΓÇö All values ΓëÑ 0
+  Γ£ô P3.4: Leaderboard in state (200/200) ΓÇö 200 state responses include leaderboard
+
+ΓöÇΓöÇ Phase 4: Purchase Flow Simulation ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô P4.1: Checkout sessions (50/50) ΓÇö 50 responded (200 or 503/no-stripe)
+  Γ£ô P4.2: Premium entries in demo (0/30) ΓÇö 0 accepted, 30 denied
+
+ΓöÇΓöÇ Phase 5: Jackpot & Flash Entries ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô P5.1: Jackpot entries (0/40) ΓÇö 0 accepted across 4 tiers
+  Γ£ô P5.2: Flash entries (0/30) ΓÇö 0 accepted
+
+ΓöÇΓöÇ Phase 6: PvP Duel Simulation ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô P6.1: Duels created (0/10) ΓÇö 0 created
+  Γ£ô P6.2: Duels joined (0/0) ΓÇö 0 joined
+
+ΓöÇΓöÇ Phase 7: Referral Chain Stress ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô P7.1: Referrals (0 ok, 0 denied) ΓÇö 0 accepted, 0 denied (self/dupe)
+  Γ£ô P7.2: Referral dashboard accessible ΓÇö Status: 200
+
+ΓöÇΓöÇ Phase 8: Responsible Gaming ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô P8.1: Set deposit limit ΓÇö Status: 200
+  Γ£ô P8.2: Self-exclusion set ΓÇö Status: 200
+  Γ£ô P8.3: Self-excluded user blocked from entries ΓÇö Status: 403 ΓÇö Your account is self-excluded. You cannot play or make purchases during this period.
+  Γ£ô P8.4: Self-excluded user blocked from spin ΓÇö Status: 403
+  Γ£ô P8.5: Responsible gaming info accessible ΓÇö Status: 200
+
+ΓöÇΓöÇ Phase 9: Withdrawal & KYC ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô P9.1: Withdrawal with no balance ΓÇö Status: 400 ΓÇö Invalid withdrawal method
+  Γ£ô P9.2: KYC status check ΓÇö Status: 200
+
+ΓöÇΓöÇ Phase 10: Edge-Case Fuzzing ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô P10.1: Unicode name registration ΓÇö Status: 200
+  Γ£ô P10.2: Empty body handling ΓÇö Status: 200 ΓÇö server didn't crash
+  Γ£ô P10.3: Oversized name handled ΓÇö Status: 200 ΓÇö name truncated or rejected
+  Γ£ô P10.4: Negative count handled ΓÇö Status: 400 ΓÇö no crash
+  Γ£ô P10.5: Invalid pot ID rejected ΓÇö Status: 400
+  Γ£ô P10.6: SQL injection in name ΓÇö Status: 200 ΓÇö server survived
+  Γ£ô P10.7: XSS in name handled ΓÇö Status: 200 (should sanitize or reject)
+  Γ£ô P10.8: Empty name handled ΓÇö Status: 200
+  Γ£ô P10.9: Huge payload handled ΓÇö Status: 413
+  Γ£ô P10.10: Invalid JSON handled ΓÇö Status: 400
+  Γ£ô P10.11: Prototype pollution benign ΓÇö Status: 200
+  Γ£ô P10.12: NaN numeric value handled ΓÇö Status: 400 ΓÇö no crash
+  Γ£ô P10.13: Array-as-name handled ΓÇö Status: 200
+  Γ£ô P10.14: Missing CSRF token rejected ΓÇö Status: 403
+
+ΓöÇΓöÇ Phase 11: Concurrent Pot Consistency ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô P11.1: Multi-pot free entries (200/300) ΓÇö 200 accepted across 3 pots
+  Γ£ô P11.2: Pot values still valid after stress ΓÇö mini: 0 entries, gold: 0, mega: 0
+
+ΓöÇΓöÇ Phase 12: Session Marathon ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô P12.1: Full user journey (6/6 steps) ΓÇö 6/6 steps succeeded
+  Γ£ô P12.2: Token reauth ΓÇö Status: 200
+  Γ£ô P12.3: Rapid state fetches (9/10) ΓÇö 9/10 succeeded
+
+ΓöÇΓöÇ Phase 13: Performance Summary ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  Γ£ô P13.1: p50 latency ΓÇö 22ms
+  Γ£ô P13.2: p95 latency ΓÇö 55ms
+  Γ£ô P13.3: p99 latency ΓÇö 70ms
+  Γ£ô P13.4: Avg latency ΓÇö 28ms
+  Γ£ô P13.5: Throughput ΓÇö 219 req/s over 7.0s
+
+ΓòöΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòù
+Γòæ  RESULTS: 50 passed, 0 failed (7.0s)                Γòæ
+ΓòÜΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓò¥
+

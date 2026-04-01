@@ -1028,6 +1028,7 @@
         <p class="name-sub">Takes 10 seconds. Your first entry is FREE.</p>
         <input type="text" id="playerNameInput" class="name-input" placeholder="Your name" maxlength="20" autocomplete="off" aria-label="Your name">
         <input type="email" id="playerEmailInput" class="name-input" placeholder="Email (for winner notifications)" maxlength="100" autocomplete="email" aria-label="Email address">
+        <input type="password" id="playerPasswordInput" class="name-input" placeholder="Create a password (min 6 chars)" minlength="6" maxlength="128" autocomplete="new-password" aria-label="Password">
         <input type="hidden" id="playerStateInput" value="">
         <div class="state-picker" id="statePicker">
           <button type="button" class="state-picker-btn name-input" id="statePickerBtn" aria-label="Select your state" aria-haspopup="listbox" aria-expanded="false">
@@ -1465,6 +1466,7 @@
       <h2 class="name-title" id="signInTitle">WELCOME BACK</h2>
       <p class="name-sub">Sign in with your email to recover your account.</p>
       <input type="email" id="signInEmailInput" class="name-input" placeholder="Your email address" maxlength="100" autocomplete="email" aria-label="Email address">
+      <input type="password" id="signInPasswordInput" class="name-input" placeholder="Your password" maxlength="128" autocomplete="current-password" aria-label="Password">
       <div id="signInError" class="field-error-msg hidden"></div>
       <button class="btn btn-premium" id="btnSignIn">SIGN IN →</button>
       <p class="name-signin">Don't have an account? <a href="#" id="btnSignInToRegister">Create one</a></p>

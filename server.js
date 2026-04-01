@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const Stripe = require('stripe');
 const { WebSocketServer } = require('ws');
 const webpush = require('web-push');
+const bcrypt = require('bcryptjs');
 const db = require('./db');
 
 const app = express();
@@ -1315,6 +1316,15 @@ app.post('/api/register', rateLimit(60000, 3), (req, res) => {
   if (db.findPlayerByEmail(rawEmail)) {
     return res.status(400).json({ error: 'An account with this email already exists' });
   }
+  // Password is required
+  const rawPassword = String(req.body.password || '');
+  if (!rawPassword || rawPassword.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+  if (rawPassword.length > 128) {
+    return res.status(400).json({ error: 'Password is too long' });
+  }
+  const passwordHash = bcrypt.hashSync(rawPassword, 10);
   // Date of birth — required, must be 18+
   const rawDob = sanitizeString(req.body.dateOfBirth || '', 10);
   if (!rawDob || !/^\d{4}-\d{2}-\d{2}$/.test(rawDob)) {
@@ -1366,6 +1376,7 @@ app.post('/api/register', rateLimit(60000, 3), (req, res) => {
     // Email verification
     emailVerified: false,
     emailVerifyToken: crypto.randomBytes(16).toString('hex'),
+    passwordHash,
   };
   putPlayer(player);
 
@@ -1416,8 +1427,11 @@ app.post('/api/login', rateLimit(60000, 5), (req, res) => {
   }
   const player = db.findPlayerByEmail(email);
   if (!player) {
-    // Don't reveal whether account exists — use generic message
-    return res.status(404).json({ error: 'No account found with that email' });
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
+  const password = String(req.body.password || '');
+  if (!password || !player.passwordHash || !bcrypt.compareSync(password, player.passwordHash)) {
+    return res.status(401).json({ error: 'Invalid email or password' });
   }
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
   const token = signToken(player.id, ip);
