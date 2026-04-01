@@ -880,11 +880,13 @@
       const email = ($('#playerEmailInput') ? $('#playerEmailInput').value.trim() : '');
       const stateVal = ($('#playerStateInput') ? $('#playerStateInput').value : '');
       const ref = ($('#refCodeInput').value.trim() || window._pendingRefCode || '').toUpperCase();
+      const dob = $('#playerDobInput') ? $('#playerDobInput').value : '';
       if (!name) { $('#playerNameInput').focus(); return; }
       if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('Please enter a valid email address'); $('#playerEmailInput').focus(); return; }
       if (!stateVal) { $('#statePickerBtn').focus(); $('#statePickerBtn').click(); return; }
+      if (!dob) { showError('Please enter your date of birth'); $('#playerDobInput').focus(); return; }
       // Register immediately
-      const data = await api('register', { name, email: email || undefined, state: stateVal, referralCode: ref || undefined });
+      const data = await api('register', { name, email: email || undefined, state: stateVal, dateOfBirth: dob, referralCode: ref || undefined });
       player = data.player;
       if (data.token) localStorage.setItem('goldpot_token', data.token);
       localStorage.setItem('goldpot_player_id', player.id);
@@ -1303,6 +1305,44 @@
       player = null;
       $('#app').classList.add('hidden');
       showHeroScreen();
+    });
+
+    // ── Account Management ──
+    const btnSetDepositLimit = $('#btnSetDepositLimit');
+    if (btnSetDepositLimit) btnSetDepositLimit.addEventListener('click', async () => {
+      const val = parseInt($('#depositLimitSelect').value, 10);
+      try {
+        await api('set-deposit-limit', { dailyLimitCents: val * 100 });
+        showBonus(val ? `Daily limit set to $${val}` : 'Daily limit removed');
+      } catch (e) { showError(e.message || 'Failed to set limit'); }
+    });
+
+    const btnSelfExclude = $('#btnSelfExclude');
+    if (btnSelfExclude) btnSelfExclude.addEventListener('click', async () => {
+      const days = parseInt($('#selfExcludeSelect').value, 10);
+      if (!confirm(`Are you sure you want to lock your account for ${days} day(s)? This CANNOT be reversed.`)) return;
+      try {
+        const res = await api('self-exclude', { days });
+        showBonus(`Account locked until ${new Date(res.excludedUntil).toLocaleDateString()}`);
+      } catch (e) { showError(e.message || 'Failed to self-exclude'); }
+    });
+
+    const btnDeleteAccount = $('#btnDeleteAccount');
+    if (btnDeleteAccount) btnDeleteAccount.addEventListener('click', async () => {
+      if (!confirm('PERMANENTLY delete your account and all data? This cannot be undone.')) return;
+      if (!confirm('Are you absolutely sure? All entries, winnings, and history will be lost forever.')) return;
+      try {
+        await api('delete-account', {});
+        localStorage.removeItem('goldpot_player_id');
+        localStorage.removeItem('goldpot_token');
+        localStorage.removeItem('goldpot_verify_url');
+        if (pollTimer) clearInterval(pollTimer);
+        if (ws) { ws.close(); ws = null; }
+        player = null;
+        $('#app').classList.add('hidden');
+        showHeroScreen();
+        showBonus('Account deleted successfully');
+      } catch (e) { showError(e.message || 'Failed to delete account'); }
     });
 
     const btnRefCopyLink = $('#btnRefCopyLink');
@@ -2528,6 +2568,19 @@
         banner.innerHTML = '📧 <b>Verify your email</b> to secure your account. <a href="' + verifyUrl + '" target="_blank">Verify now</a> <button class="evb-close">&times;</button>';
         document.body.appendChild(banner);
         banner.querySelector('.evb-close').addEventListener('click', () => banner.remove());
+        // Poll for verification — auto-dismiss when verified
+        const emailPoll = setInterval(async () => {
+          const fresh = await api('state');
+          if (fresh && fresh.player && fresh.player.emailVerified) {
+            clearInterval(emailPoll);
+            player.emailVerified = true;
+            banner.remove();
+            localStorage.removeItem('goldpot_verify_url');
+            showBonus('✅ Email verified!');
+          }
+        }, 5000);
+        // Stop polling after 10 minutes
+        setTimeout(() => clearInterval(emailPoll), 600000);
       }
     }
 
@@ -4597,12 +4650,6 @@
       '</div>';
     }
 
-    // GIF
-    let gifHtml = '';
-    if (msg.gif) {
-      gifHtml = '<div class="chat-gif"><img src="' + escapeHtml(msg.gif) + '" alt="GIF" loading="lazy"></div>';
-    }
-
     // Message text with @mentions highlighted and text formatting
     let msgTextHtml = highlightMentions(escapeHtml(msg.text));
     msgTextHtml = formatChatText(msgTextHtml);
@@ -4629,7 +4676,6 @@
           '<span class="chat-msg-time">' + formatChatTime(msg.ts) + '</span>' +
         '</div>' +
         '<div class="chat-msg-text">' + cmdIcon + msgTextHtml + '</div>' +
-        gifHtml +
         buildReactionsHtml(msg.id, msg.reactions) +
       '</div>' +
       '<div class="chat-msg-actions">' +
@@ -4948,16 +4994,6 @@
     ws.send(JSON.stringify(payload));
   }
 
-  function sendChatGif(gifUrl, caption) {
-    if (!ws || ws.readyState !== 1) return;
-    const payload = { type: 'chat', text: caption || '🎬 GIF', gif: gifUrl };
-    if (chatReplyTarget) {
-      payload.replyTo = chatReplyTarget.id;
-      clearReply();
-    }
-    ws.send(JSON.stringify(payload));
-  }
-
   function sendChatReaction(msgId, emoji) {
     if (!ws || ws.readyState !== 1) return;
     ws.send(JSON.stringify({ type: 'chat_react', msgId: msgId, emoji: emoji }));
@@ -5075,74 +5111,6 @@
     input.focus();
   }
 
-  // ─── GIF Picker ───
-  let gifSearchTimeout = null;
-  const TENOR_KEY = 'AIzaSyC_qG39G2OBLaaFq8kSJR3Hkz9JCq_hABM'; // public Tenor API v2 key
-
-  function openGifPicker() {
-    var picker = $('#chatGifPicker');
-    if (picker) {
-      picker.classList.toggle('hidden');
-      if (!picker.classList.contains('hidden')) {
-        var searchInput = picker.querySelector('.chat-gif-search');
-        if (searchInput) { searchInput.value = ''; searchInput.focus(); }
-        loadTrendingGifs();
-      }
-    }
-  }
-
-  function loadTrendingGifs() {
-    var grid = $('#chatGifGrid');
-    if (!grid) return;
-    grid.innerHTML = '<div class="chat-gif-loading">Loading trending GIFs...</div>';
-    fetch('https://tenor.googleapis.com/v2/featured?key=' + encodeURIComponent(TENOR_KEY) + '&limit=20&media_filter=tinygif')
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        renderGifResults(data.results || []);
-      })
-      .catch(function() {
-        grid.innerHTML = '<div class="chat-gif-loading">Could not load GIFs<br><button class="chat-gif-retry">Retry</button></div>';
-        var retryBtn = grid.querySelector('.chat-gif-retry');
-        if (retryBtn) retryBtn.addEventListener('click', loadTrendingGifs);
-      });
-  }
-
-  function searchGifs(query) {
-    var grid = $('#chatGifGrid');
-    if (!grid) return;
-    if (!query || query.length < 2) { loadTrendingGifs(); return; }
-    grid.innerHTML = '<div class="chat-gif-loading">Searching...</div>';
-    fetch('https://tenor.googleapis.com/v2/search?key=' + encodeURIComponent(TENOR_KEY) + '&q=' + encodeURIComponent(query) + '&limit=20&media_filter=tinygif')
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        renderGifResults(data.results || []);
-      })
-      .catch(function() {
-        grid.innerHTML = '<div class="chat-gif-loading">Search failed<br><button class="chat-gif-retry">Retry</button></div>';
-        var retryBtn = grid.querySelector('.chat-gif-retry');
-        if (retryBtn) retryBtn.addEventListener('click', function() { searchGifs(document.querySelector('.chat-gif-search')?.value); });
-      });
-  }
-
-  function renderGifResults(results) {
-    var grid = $('#chatGifGrid');
-    if (!grid) return;
-    if (results.length === 0) {
-      grid.innerHTML = '<div class="chat-gif-loading">No GIFs found</div>';
-      return;
-    }
-    var html = '';
-    for (var i = 0; i < results.length; i++) {
-      var gif = results[i];
-      var url = gif.media_formats && gif.media_formats.tinygif ? gif.media_formats.tinygif.url : '';
-      var fullUrl = gif.media_formats && gif.media_formats.gif ? gif.media_formats.gif.url : url;
-      if (url) {
-        html += '<img class="chat-gif-item" src="' + escapeHtml(url) + '" data-full="' + escapeHtml(fullUrl) + '" alt="GIF" loading="lazy">';
-      }
-    }
-    grid.innerHTML = html;
-  }
-
   function showReactPopup(msgId, triggerEl) {
     // Close any existing popup
     closeReactPopup();
@@ -5215,6 +5183,125 @@
       var container = $('#chatMessages');
       if (container) container.scrollTop = container.scrollHeight;
     });
+
+    // ── Draggable chat sidebar (desktop only) ──
+    (function initChatDrag() {
+      var handle = document.getElementById('chatDragHandle');
+      if (!handle || window.innerWidth <= 600) return;
+      var dragging = false, startX, startY, origLeft, origTop;
+
+      handle.addEventListener('mousedown', function(e) {
+        // Don't drag if clicking a button inside the header
+        if (e.target.closest('button')) return;
+        dragging = true;
+        sidebar.classList.add('chat-dragging');
+        var rect = sidebar.getBoundingClientRect();
+        startX = e.clientX;
+        startY = e.clientY;
+        origLeft = rect.left;
+        origTop = rect.top;
+        // Detach from fixed positioning model
+        sidebar.style.left = rect.left + 'px';
+        sidebar.style.top = rect.top + 'px';
+        sidebar.style.bottom = 'auto';
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var dx = e.clientX - startX;
+        var dy = e.clientY - startY;
+        var newLeft = Math.max(0, Math.min(window.innerWidth - 60, origLeft + dx));
+        var newTop = Math.max(0, Math.min(window.innerHeight - 60, origTop + dy));
+        sidebar.style.left = newLeft + 'px';
+        sidebar.style.top = newTop + 'px';
+      });
+
+      document.addEventListener('mouseup', function() {
+        if (!dragging) return;
+        dragging = false;
+        sidebar.classList.remove('chat-dragging');
+      });
+
+      // Touch support for drag
+      handle.addEventListener('touchstart', function(e) {
+        if (e.target.closest('button')) return;
+        var touch = e.touches[0];
+        dragging = true;
+        sidebar.classList.add('chat-dragging');
+        var rect = sidebar.getBoundingClientRect();
+        startX = touch.clientX;
+        startY = touch.clientY;
+        origLeft = rect.left;
+        origTop = rect.top;
+        sidebar.style.left = rect.left + 'px';
+        sidebar.style.top = rect.top + 'px';
+        sidebar.style.bottom = 'auto';
+      }, { passive: true });
+
+      handle.addEventListener('touchmove', function(e) {
+        if (!dragging) return;
+        var touch = e.touches[0];
+        var dx = touch.clientX - startX;
+        var dy = touch.clientY - startY;
+        var newLeft = Math.max(0, Math.min(window.innerWidth - 60, origLeft + dx));
+        var newTop = Math.max(0, Math.min(window.innerHeight - 60, origTop + dy));
+        sidebar.style.left = newLeft + 'px';
+        sidebar.style.top = newTop + 'px';
+      }, { passive: true });
+
+      handle.addEventListener('touchend', function() {
+        if (!dragging) return;
+        dragging = false;
+        sidebar.classList.remove('chat-dragging');
+      });
+    })();
+
+    // ── Resizable chat sidebar (desktop only) ──
+    (function initChatResize() {
+      var resizeHandle = document.getElementById('chatResizeHandle');
+      if (!resizeHandle || window.innerWidth <= 600) return;
+      var resizing = false, startX, startY, origW, origH;
+
+      resizeHandle.addEventListener('mousedown', function(e) {
+        resizing = true;
+        sidebar.classList.add('chat-dragging');
+        origW = sidebar.offsetWidth;
+        origH = sidebar.offsetHeight;
+        startX = e.clientX;
+        startY = e.clientY;
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', function(e) {
+        if (!resizing) return;
+        var newW = Math.max(240, origW + (e.clientX - startX));
+        var newH = Math.max(300, origH + (e.clientY - startY));
+        sidebar.style.width = Math.min(newW, window.innerWidth * 0.9) + 'px';
+        sidebar.style.height = Math.min(newH, window.innerHeight * 0.96) + 'px';
+        sidebar.style.bottom = 'auto';
+      });
+
+      document.addEventListener('mouseup', function() {
+        if (!resizing) return;
+        resizing = false;
+        sidebar.classList.remove('chat-dragging');
+      });
+    })();
+
+    // ── Expand / shrink toggle ──
+    var expandToggle = document.getElementById('chatExpandToggle');
+    if (expandToggle) {
+      expandToggle.addEventListener('click', function() {
+        var expanded = sidebar.classList.toggle('chat-expanded');
+        expandToggle.textContent = expanded ? '⤡' : '⤢';
+        expandToggle.title = expanded ? 'Shrink' : 'Expand';
+        if (expanded) {
+          sidebar.style.width = '';
+          sidebar.style.height = '';
+        }
+      });
+    }
 
     // Submit message — Q34: blur input on mobile to dismiss keyboard
     if (form) form.addEventListener('submit', function(e) {
@@ -5308,32 +5395,6 @@
       feed.addEventListener('scroll', function() {
         var atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 60;
         if (atBottom) hideScrollFAB();
-      });
-    }
-
-    // GIF picker
-    var gifToggle = $('#chatGifToggle');
-    if (gifToggle) gifToggle.addEventListener('click', openGifPicker);
-
-    var gifSearchInput = document.querySelector('.chat-gif-search');
-    if (gifSearchInput) {
-      gifSearchInput.addEventListener('input', function() {
-        clearTimeout(gifSearchTimeout);
-        var q = this.value.trim();
-        gifSearchTimeout = setTimeout(function() { searchGifs(q); }, 400);
-      });
-    }
-
-    // GIF grid click
-    var gifGrid = $('#chatGifGrid');
-    if (gifGrid) {
-      gifGrid.addEventListener('click', function(e) {
-        var img = e.target.closest('.chat-gif-item');
-        if (!img) return;
-        var fullUrl = img.dataset.full || img.src;
-        sendChatGif(fullUrl, '');
-        var picker = $('#chatGifPicker');
-        if (picker) picker.classList.add('hidden');
       });
     }
 
@@ -5863,6 +5924,38 @@
     if (btnEnd) btnEnd.onclick = handleEndStream;
     if (btnLeave) btnLeave.onclick = leaveStreamView;
     if (btnSub) btnSub.onclick = handleStreamSubscribe;
+
+    // Expand / theater / fullscreen toggle
+    const btnExpand = $('#btnStreamExpand');
+    if (btnExpand) {
+      btnExpand.onclick = () => {
+        const viewer = $('#streamViewer');
+        if (!viewer) return;
+        // Cycle: normal → theater → fullscreen → normal
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+          viewer.classList.remove('theater');
+          btnExpand.textContent = '\u26f6';
+        } else if (viewer.classList.contains('theater')) {
+          // Enter native fullscreen on the canvas wrap
+          const wrap = viewer.querySelector('.stream-canvas-wrap');
+          if (wrap && wrap.requestFullscreen) {
+            wrap.requestFullscreen();
+            btnExpand.textContent = '\u2716';
+          }
+        } else {
+          viewer.classList.add('theater');
+          btnExpand.textContent = '\u2b1c';
+        }
+      };
+      document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement) {
+          const viewer = $('#streamViewer');
+          if (viewer) viewer.classList.remove('theater');
+          if (btnExpand) btnExpand.textContent = '\u26f6';
+        }
+      });
+    }
   }
 
   async function fetchStreams() {

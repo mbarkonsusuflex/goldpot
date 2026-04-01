@@ -23,13 +23,54 @@ if (DEMO_MODE && process.env.NODE_ENV === 'production') {
 }
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 if (!stripe && process.env.NODE_ENV === 'production') {
-  process.stdout.write(JSON.stringify({
-    ts: new Date().toISOString(),
-    level: 'warn',
-    msg: 'STRIPE_SECRET_KEY not set — payments will be rejected in production',
-  }) + '\n');
+  throw new Error('STRIPE_SECRET_KEY must be set in production — payments cannot operate without it');
 }
+if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_SECRET) {
+  throw new Error('ADMIN_SECRET must be set in production');
+}
+if (process.env.NODE_ENV === 'production' && process.env.ADMIN_SECRET && process.env.ADMIN_SECRET.length < 32) {
+  throw new Error('ADMIN_SECRET must be at least 32 characters');
+}
+
+// ─── SendGrid Email ─────────────────────────────────────────────────────────
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
+let sgMail = null;
+try {
+  if (SENDGRID_API_KEY) {
+    sgMail = require('@sendgrid/mail');
+    sgMail.setApiKey(SENDGRID_API_KEY);
+  }
+} catch { /* SendGrid not installed — emails disabled */ }
 const PAYMENT_PROOF_SECRET = `${JWT_SECRET}:payment-proof`;
+const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@goldpot.us';
+
+// ─── Email Helper ───────────────────────────────────────────────────────────
+async function sendEmail(to, subject, html) {
+  if (!sgMail) {
+    log('warn', 'Email not sent — SendGrid not configured', { to, subject });
+    return false;
+  }
+  try {
+    await sgMail.send({ to, from: FROM_EMAIL, subject, html });
+    return true;
+  } catch (err) {
+    log('error', 'SendGrid email failed', { to, subject, error: err.message });
+    return false;
+  }
+}
+
+async function sendVerificationEmail(player) {
+  const verifyUrl = `https://${CANONICAL_HOST}/api/verify-email?id=${encodeURIComponent(player.id)}&token=${encodeURIComponent(player.emailVerifyToken)}`;
+  return sendEmail(player.email, 'Verify your GoldPot email', `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#0a0a0f;color:#e8e8f0;border-radius:12px;">
+      <h2 style="color:#f0c040;margin:0 0 16px;">Welcome to GoldPot!</h2>
+      <p>Hi ${player.name},</p>
+      <p>Please verify your email to secure your account and enable withdrawals:</p>
+      <a href="${verifyUrl}" style="display:inline-block;padding:14px 28px;background:#f0c040;color:#0a0a0f;font-weight:700;text-decoration:none;border-radius:10px;margin:16px 0;">VERIFY EMAIL</a>
+      <p style="font-size:0.85rem;color:#9898b0;">If you didn't create a GoldPot account, ignore this email.</p>
+    </div>
+  `);
+}
 
 // ─── VAPID for Web Push ─────────────────────────────────────────────────────
 const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY || '';
@@ -106,6 +147,20 @@ setInterval(() => db.pruneOldSecurityEvents(Date.now() - 30 * 24 * 3600000), 6 *
 setInterval(() => {
   try { db.checkpoint(); } catch { /* ignore */ }
 }, 5 * 60 * 1000);
+// Daily database backup at midnight UTC
+let _lastBackupDate = '';
+setInterval(() => {
+  const today = new Date().toISOString().slice(0, 10);
+  if (today !== _lastBackupDate) {
+    _lastBackupDate = today;
+    try {
+      const backupPath = db.backupDatabase();
+      log('info', 'Daily DB backup completed', { path: backupPath });
+    } catch (err) {
+      log('error', 'DB backup failed', { error: err.message });
+    }
+  }
+}, 60 * 60 * 1000); // check every hour
 
 // ─── Account Lockout ────────────────────────────────────────────────────────
 const authFailures = new Map(); // ip -> { count, firstAt }
@@ -1118,6 +1173,7 @@ function sanitizePlayer(player) {
     referralCount: player.referralCount || 0,
     referralEarnings: player.referralEarnings || 0,
     hasEmail: !!player.email,
+    emailVerified: !!player.emailVerified,
     yourOdds: Object.fromEntries(
       Object.entries(state.pots).map(([k, p]) => [k, p.totalEntries > 0 ? ((player.entries[k] || 0) / p.totalEntries * 100).toFixed(2) : '0.00'])
     ),
@@ -1245,12 +1301,31 @@ app.post('/api/register', rateLimit(60000, 3), (req, res) => {
   if (!rawEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
     return res.status(400).json({ error: 'A valid email address is required' });
   }
+  // Prevent duplicate email registrations
+  if (db.findPlayerByEmail(rawEmail)) {
+    return res.status(400).json({ error: 'An account with this email already exists' });
+  }
+  // Date of birth — required, must be 18+
+  const rawDob = sanitizeString(req.body.dateOfBirth || '', 10);
+  if (!rawDob || !/^\d{4}-\d{2}-\d{2}$/.test(rawDob)) {
+    return res.status(400).json({ error: 'Date of birth is required (YYYY-MM-DD)' });
+  }
+  const dobDate = new Date(rawDob);
+  const ageDiff = Date.now() - dobDate.getTime();
+  const ageYears = ageDiff / (365.25 * 24 * 3600 * 1000);
+  if (ageYears < 18) {
+    return res.status(403).json({ error: 'You must be at least 18 years old to play' });
+  }
+  if (ageYears > 120) {
+    return res.status(400).json({ error: 'Invalid date of birth' });
+  }
   const id = generatePlayerId();
   const rawName = sanitizeString(req.body.name, 20);
   const player = {
     id, name: rawName || `Player_${id.slice(0, 6)}`,
     entries: { mini: 0, gold: 0, mega: 0, jackpot: 0, flash: 0 }, totalEntries: 0, freeEntryUsed: {},
     email: rawEmail,
+    dateOfBirth: rawDob,
     referralCode: id.slice(0, 8).toUpperCase(), referredBy: req.body.referralCode || null, referralCount: 0, referrals: [],
     createdAt: Date.now(), lastPlayedAt: Date.now(), lastDailyBonus: null, lastSpin: null,
     sessionStartedAt: Date.now(),
@@ -1316,6 +1391,8 @@ app.post('/api/register', rateLimit(60000, 3), (req, res) => {
   });
   putPlayer(player);
   const token = signToken(player.id, regIp);
+  // Send verification email (async, don't block response)
+  sendVerificationEmail(player).catch(() => {});
   res.json({ player: sanitizePlayer(player), token, emailVerifyToken: player.emailVerifyToken });
 });
 
@@ -1346,7 +1423,8 @@ app.post('/api/resend-verification', rateLimit(300000, 2), (req, res) => {
   // Regenerate token
   player.emailVerifyToken = crypto.randomBytes(16).toString('hex');
   putPlayer(player);
-  // In production, you would send an email here. For now return the link.
+  // Send verification email
+  sendVerificationEmail(player).catch(() => {});
   const verifyUrl = `/api/verify-email?id=${encodeURIComponent(player.id)}&token=${encodeURIComponent(player.emailVerifyToken)}`;
   res.json({ ok: true, verifyUrl });
 });
@@ -4039,6 +4117,70 @@ app.post('/api/withdraw', rateLimit(60000, 3), (req, res) => {
     handle: cleanHandle,
     message: `Withdrawal of $${(cents / 100).toFixed(2)} to ${WITHDRAW_METHOD_LABELS[method]} requested! Processing usually takes 1-3 business days.`,
   });
+});
+
+// ─── GDPR Account Deletion ──────────────────────────────────────────────────
+app.post('/api/delete-account', rateLimit(60000, 2), (req, res) => {
+  const player = getPlayer(req.body.playerId);
+  if (!player) return res.status(404).json({ error: 'Player not found' });
+  // Block deletion if pending withdrawals
+  const pendingTotal = db.getPendingTotalForPlayer(player.id);
+  if (pendingTotal > 0) {
+    return res.status(400).json({ error: 'Cannot delete account with pending withdrawal requests. Please wait for them to process.' });
+  }
+  const playerId = player.id;
+  // Remove from in-memory cache
+  playerCache.delete(playerId);
+  // Remove from all pot entries (prevent ghost entries in draws)
+  for (const potData of Object.values(state.pots)) {
+    potData.entries = potData.entries.filter(e => e.playerId !== playerId);
+    potData.totalEntries = potData.entries.length;
+  }
+  // Remove from jackpot entries
+  if (state.jackpot && state.jackpot.entries) {
+    state.jackpot.entries = state.jackpot.entries.filter(e => e.playerId !== playerId);
+    state.jackpot.totalEntries = state.jackpot.entries.length;
+  }
+  // Remove push subscription
+  pushSubscriptions.delete(playerId);
+  // Delete from DB
+  db.deletePlayer(playerId);
+  db.logAudit('account_deletion', { playerId, details: { name: player.name, email: player.email } });
+  db.logSecurityEvent('info', 'auth', 'account_deleted', { playerId, details: { name: player.name } });
+  res.json({ success: true, message: 'Your account and all data have been permanently deleted.' });
+});
+
+// ─── Self-Exclusion ─────────────────────────────────────────────────────────
+app.post('/api/self-exclude', rateLimit(60000, 2), (req, res) => {
+  const player = getPlayer(req.body.playerId);
+  if (!player) return res.status(404).json({ error: 'Player not found' });
+  const duration = parseInt(req.body.duration) || 7; // days
+  const allowedDurations = [1, 7, 30, 90, 180, 365];
+  const safeDuration = allowedDurations.includes(duration) ? duration : 7;
+  player.selfExcludedUntil = Date.now() + safeDuration * 24 * 3600000;
+  putPlayer(player);
+  db.logAudit('self_exclusion', { playerId: player.id, details: { days: safeDuration, until: player.selfExcludedUntil } });
+  res.json({ success: true, excludedUntil: player.selfExcludedUntil, days: safeDuration,
+    message: `You have been self-excluded for ${safeDuration} days. You will not be able to make purchases during this period.` });
+});
+
+// ─── Set Daily Deposit Limit ────────────────────────────────────────────────
+app.post('/api/set-deposit-limit', rateLimit(60000, 3), (req, res) => {
+  const player = getPlayer(req.body.playerId);
+  if (!player) return res.status(404).json({ error: 'Player not found' });
+  const limitDollars = parseInt(req.body.limitDollars);
+  if (limitDollars === 0) {
+    player.dailyDepositLimitCents = null;
+    putPlayer(player);
+    return res.json({ success: true, message: 'Daily deposit limit removed.' });
+  }
+  if (!limitDollars || limitDollars < 1 || limitDollars > 10000) {
+    return res.status(400).json({ error: 'Limit must be between $1 and $10,000' });
+  }
+  player.dailyDepositLimitCents = limitDollars * 100;
+  putPlayer(player);
+  db.logAudit('deposit_limit_set', { playerId: player.id, details: { limitDollars } });
+  res.json({ success: true, limitDollars, message: `Daily deposit limit set to $${limitDollars}.` });
 });
 
 // Admin: list pending withdrawals

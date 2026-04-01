@@ -105,6 +105,11 @@ function init() {
 
     CREATE INDEX IF NOT EXISTS idx_kyc_player ON kyc_submissions(player_id);
     CREATE INDEX IF NOT EXISTS idx_kyc_status ON kyc_submissions(status);
+
+    CREATE INDEX IF NOT EXISTS idx_players_email ON players(json_extract(data, '$.email'));
+    CREATE INDEX IF NOT EXISTS idx_players_referral ON players(json_extract(data, '$.referralCode'));
+    CREATE INDEX IF NOT EXISTS idx_withdrawals_player ON withdrawals(player_id);
+    CREATE INDEX IF NOT EXISTS idx_withdrawals_status ON withdrawals(status);
   `);
 
   return db;
@@ -136,6 +141,7 @@ function prepareStatements() {
   stmts.recentWinners = db.prepare('SELECT * FROM winners ORDER BY timestamp DESC LIMIT 50');
   stmts.countPlayers = db.prepare('SELECT COUNT(*) as count FROM players');
   stmts.findByReferralCode = db.prepare("SELECT id, data FROM players WHERE json_extract(data, '$.referralCode') = ? LIMIT 1");
+  stmts.findByEmail = db.prepare("SELECT id, data FROM players WHERE json_extract(data, '$.email') = ? LIMIT 1");
   stmts.topPlayersByEntries = db.prepare("SELECT id, data FROM players WHERE json_extract(data, '$.totalEntries') > 0 ORDER BY json_extract(data, '$.totalEntries') DESC LIMIT ?");
   stmts.insertWithdrawal = db.prepare(`
     INSERT INTO withdrawals (player_id, player_name, amount, method, handle, status, requested_at)
@@ -274,6 +280,15 @@ function countPlayers() {
 function findPlayerByReferralCode(code) {
   const row = stmts.findByReferralCode.get(code);
   return row ? JSON.parse(row.data) : null;
+}
+
+function findPlayerByEmail(email) {
+  const row = stmts.findByEmail.get(email);
+  return row ? JSON.parse(row.data) : null;
+}
+
+function deletePlayer(playerId) {
+  stmts.deletePlayer.run(playerId);
 }
 
 function getTopPlayersByEntries(limit) {
@@ -457,6 +472,14 @@ function checkpoint() {
   if (db) db.pragma('wal_checkpoint(PASSIVE)');
 }
 
+function backupDatabase(destPath) {
+  if (!db) return;
+  const backupPath = destPath || DB_PATH + '.backup-' + new Date().toISOString().slice(0, 10);
+  db.pragma('wal_checkpoint(TRUNCATE)');
+  fs.copyFileSync(DB_PATH, backupPath);
+  return backupPath;
+}
+
 module.exports = {
   init,
   prepareStatements,
@@ -466,6 +489,8 @@ module.exports = {
   savePlayers,
   countPlayers,
   findPlayerByReferralCode,
+  findPlayerByEmail,
+  deletePlayer,
   getTopPlayersByEntries,
   saveAppState,
   loadAppState,
@@ -495,5 +520,6 @@ module.exports = {
   getPendingKyc,
   updateKycStatus,
   checkpoint,
+  backupDatabase,
   close,
 };

@@ -26,8 +26,8 @@
   <meta name="theme-color" content="#0a0a0f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <!-- Google AdSense — uncomment and replace YOUR_PUB_ID when you have a real publisher ID -->
-  <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_PUB_ID" crossorigin="anonymous"></script> -->
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4394518473525109" crossorigin="anonymous"></script>
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/png" href="/img/gold-pot-logo-favicon.png">
   <link rel="apple-touch-icon" href="/img/gold-pot-logo-favicon.png">
@@ -853,11 +853,52 @@
       </div>
     </section>
 
+    <!-- ACCOUNT MANAGEMENT -->
+    <section class="account-mgmt-section" id="accountMgmtSection">
+      <div class="account-mgmt-card">
+        <h3 class="account-mgmt-title">⚙️ ACCOUNT &amp; RESPONSIBLE GAMING</h3>
+
+        <div class="account-mgmt-group">
+          <label class="account-mgmt-label">Daily Deposit Limit</label>
+          <div class="account-mgmt-row">
+            <select id="depositLimitSelect" class="account-mgmt-select" aria-label="Daily deposit limit">
+              <option value="0">No limit</option>
+              <option value="10">$10 / day</option>
+              <option value="25">$25 / day</option>
+              <option value="50">$50 / day</option>
+              <option value="100">$100 / day</option>
+              <option value="500">$500 / day</option>
+            </select>
+            <button class="btn btn-sm" id="btnSetDepositLimit">Set</button>
+          </div>
+        </div>
+
+        <div class="account-mgmt-group">
+          <label class="account-mgmt-label">Self-Exclusion</label>
+          <p class="account-mgmt-desc">Temporarily lock your account. This cannot be reversed.</p>
+          <div class="account-mgmt-row">
+            <select id="selfExcludeSelect" class="account-mgmt-select" aria-label="Self-exclusion period">
+              <option value="1">1 day</option>
+              <option value="7">7 days</option>
+              <option value="30">30 days</option>
+              <option value="90">90 days</option>
+              <option value="365">1 year</option>
+            </select>
+            <button class="btn btn-sm btn-danger" id="btnSelfExclude">Activate</button>
+          </div>
+        </div>
+
+        <div class="account-mgmt-group">
+          <label class="account-mgmt-label">Delete Account</label>
+          <p class="account-mgmt-desc">Permanently delete your account and all data. This action cannot be undone.</p>
+          <button class="btn btn-sm btn-danger" id="btnDeleteAccount">Delete My Account</button>
+        </div>
+      </div>
+    </section>
+
     <!-- AD BANNER -->
     <div class="ad-banner-slot" id="adSlotMid">
-      <!-- Uncomment when AdSense is configured:
-      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-YOUR_PUB_ID" data-ad-slot="YOUR_AD_SLOT_1" data-ad-format="auto" data-full-width-responsive="true"></ins>
-      -->
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4394518473525109" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
     </div>
 
     <!-- RECENT WINNERS -->
@@ -868,9 +909,7 @@
 
     <!-- AD BANNER (BOTTOM) -->
     <div class="ad-banner-slot" id="adSlotBottom">
-      <!-- Uncomment when AdSense is configured:
-      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-YOUR_PUB_ID" data-ad-slot="YOUR_AD_SLOT_2" data-ad-format="auto" data-full-width-responsive="true"></ins>
-      -->
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4394518473525109" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
     </div>
 
     </div><!-- /tab-panel social -->
@@ -1001,6 +1040,7 @@
             <div class="state-picker-list" id="stateList"></div>
           </div>
         </div>
+        <input type="date" id="playerDobInput" class="name-input" placeholder="Date of birth" aria-label="Date of birth" required>
         <input type="text" id="refCodeInput" class="name-input ref-input" placeholder="Referral code (optional)" maxlength="8" autocomplete="off" aria-label="Referral code">
         <label class="age-confirm"><input type="checkbox" id="ageConfirm" aria-label="I confirm I am 18+ and a US resident"> I confirm I am 18+ and a US resident</label>
         <button class="btn btn-premium" id="btnJoin" disabled>NEXT →</button>
@@ -1296,17 +1336,20 @@
 
   <!-- ═══ LIVE CHAT — LEFT SIDEBAR ═══ -->
   <aside id="chatSidebar" class="chat-sidebar hidden">
-    <div class="chat-sidebar-header">
+    <div class="chat-sidebar-header" id="chatDragHandle">
       <div class="chat-sidebar-header-left">
         <span class="chat-sidebar-dot"></span>
         <span class="chat-sidebar-title">LIVE CHAT</span>
         <span class="chat-sidebar-online" id="chatOnline">0 online</span>
       </div>
       <div class="chat-sidebar-header-right">
+        <button class="chat-header-btn" id="chatExpandToggle" aria-label="Expand chat" title="Expand">⤢</button>
         <button class="chat-header-btn" id="chatSoundToggle" aria-label="Toggle sound" title="Mute notifications">🔔</button>
         <button class="chat-sidebar-collapse" id="chatCollapse" aria-label="Collapse chat">‹</button>
       </div>
     </div>
+    <!-- Resize handle -->
+    <div class="chat-resize-handle" id="chatResizeHandle"></div>
     <div class="chat-feed" id="chatMessages" role="log" aria-live="polite" aria-label="Chat messages">
       <div class="chat-empty">No messages yet — say hi! 👋</div>
     </div>
@@ -1328,11 +1371,6 @@
       <button class="chat-emoji-btn" data-emoji="🤑">🤑</button>
       <button class="chat-emoji-btn" data-emoji="🙌">🙌</button>
     </div>
-    <!-- GIF Picker -->
-    <div class="chat-gif-picker hidden" id="chatGifPicker">
-      <input type="text" class="chat-gif-search" placeholder="Search GIFs..." maxlength="50" autocomplete="off" aria-label="Search GIFs">
-      <div class="chat-gif-grid" id="chatGifGrid"></div>
-    </div>
     <div class="chat-typing hidden" id="chatTyping" role="status" aria-live="polite">
       <span class="chat-typing-dots"><span></span><span></span><span></span></span>
       <span class="chat-typing-text" id="chatTypingText">Someone is typing...</span>
@@ -1349,7 +1387,6 @@
     <!-- Message input form -->
     <form class="chat-sidebar-input" id="chatForm" autocomplete="off">
       <button type="button" class="chat-emoji-toggle" id="chatEmojiToggle" aria-label="Emoji">😀</button>
-      <button type="button" class="chat-gif-toggle" id="chatGifToggle" aria-label="GIF" title="Send a GIF">GIF</button>
       <input type="text" class="chat-input" id="chatInput" placeholder="Type a message... (/ for commands)" maxlength="200" autocomplete="off" aria-label="Chat message" />
       <button type="submit" class="chat-send" aria-label="Send">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -1560,6 +1597,7 @@
           <canvas class="stream-canvas" id="streamCanvas" width="360" height="450"></canvas>
           <div class="stream-score-overlay" id="streamScoreOverlay">Score: 0</div>
           <div class="stream-gift-overlay" id="streamGiftOverlay"></div>
+          <button class="stream-expand-btn" id="btnStreamExpand" title="Expand">⛶</button>
         </div>
         <div class="stream-sidebar">
           <!-- Free Chat -->
