@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const compression = require('compression');
 const crypto = require('crypto');
@@ -232,7 +233,7 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '0');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://js.stripe.com https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' wss: ws: https://fonts.googleapis.com https://fonts.gstatic.com https://api.stripe.com https://pagead2.googlesyndication.com https://ep1.adtrafficquality.google; frame-src https://js.stripe.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com; frame-ancestors 'none'");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://js.stripe.com https://pagead2.googlesyndication.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' wss: https://fonts.googleapis.com https://fonts.gstatic.com https://api.stripe.com https://pagead2.googlesyndication.com https://ep1.adtrafficquality.google; frame-src https://js.stripe.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com; frame-ancestors 'none'");
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('X-DNS-Prefetch-Control', 'off');
   res.setHeader('X-Download-Options', 'noopen');
@@ -1541,7 +1542,11 @@ app.post('/api/create-checkout-session', async (req, res) => {
   }
 
   const pot = potId || 'gold';
-  const qty = Math.min(Math.max(1, parseInt(quantity) || 1), 100);
+  const rawQty = parseInt(quantity);
+  if (rawQty !== undefined && rawQty <= 0) {
+    return res.status(400).json({ error: 'Quantity must be positive' });
+  }
+  const qty = Math.min(Math.max(1, rawQty || 1), 100);
   const type = sanitizeString(String(purchaseType || 'premium'), 30);
 
   // Calculate price based on purchase type
@@ -1580,7 +1585,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
     totalCents = 2999;
     itemName = 'VIP Diamond — Monthly';
   } else if (type === 'double_down') {
-    const origQty = parseInt(quantity) || 1;
+    const origQty = qty;
     const bundle = state.bundles[origQty];
     const origPrice = bundle ? bundle.price : origQty * 100;
     totalCents = Math.ceil(origPrice * 0.5);
@@ -1683,6 +1688,11 @@ app.post('/api/create-checkout-session', async (req, res) => {
         error: `Daily deposit limit reached. You have $${(remainCents / 100).toFixed(2)} remaining today.`,
       });
     }
+  }
+
+  // Guard: totalCents must be positive after all pricing logic
+  if (!totalCents || totalCents <= 0) {
+    return res.status(400).json({ error: 'Invalid price calculation' });
   }
 
   if (!stripe) {
@@ -5074,6 +5084,18 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), (req,
   }
 
   res.json({ received: true });
+});
+
+// ─── Global Error Handler ────────────────────────────────────────────────────
+app.use((err, req, res, next) => {
+  log('error', 'Unhandled route error', { error: err.message, stack: err.stack, path: req.path });
+  if (!res.headersSent) {
+    const status = err.status || 500;
+    const message = status === 413 ? 'Payload too large'
+      : status === 400 ? 'Bad request'
+      : 'Internal server error';
+    res.status(status).json({ error: message });
+  }
 });
 
 // ─── WebSocket Server ───────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-const CACHE_VERSION = '3';
+const CACHE_VERSION = '4';
 const CACHE_NAME = 'goldpot-v' + CACHE_VERSION;
 const STATIC_ASSETS = [
   '/',

@@ -1040,7 +1040,8 @@
             <div class="state-picker-list" id="stateList"></div>
           </div>
         </div>
-        <input type="date" id="playerDobInput" class="name-input" placeholder="Date of birth" aria-label="Date of birth" required>
+        <label for="playerDobInput" class="field-label" style="display:block;color:var(--text2);font-size:0.78rem;margin-bottom:4px;text-align:left;">Date of Birth (must be 18+)</label>
+        <input type="date" id="playerDobInput" class="name-input" aria-label="Date of birth" required>
         <input type="text" id="refCodeInput" class="name-input ref-input" placeholder="Referral code (optional)" maxlength="8" autocomplete="off" aria-label="Referral code">
         <label class="age-confirm"><input type="checkbox" id="ageConfirm" aria-label="I confirm I am 18+ and a US resident"> I confirm I am 18+ and a US resident</label>
         <button class="btn btn-premium" id="btnJoin" disabled>NEXT →</button>

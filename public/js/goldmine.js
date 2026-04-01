@@ -564,14 +564,10 @@ class DeepGoldGame {
     this._showScreen('gameover');
 
     // Show continue option only if player had banked gold (worth saving)
+    // Continue is disabled until Stripe checkout integration is complete
     const continueEl = document.getElementById('goContinue');
     if (continueEl) {
-      // Max 2 continues per game, and must have banked gold worth saving
-      continueEl.style.display = (this.continuesUsed < 2 && totalGold > 0) ? 'block' : 'none';
-      // Escalate price each continue ($0.99 → $1.99)
-      const price = this.continuesUsed === 0 ? '0.99' : '1.99';
-      const btnC = document.getElementById('btnContinue');
-      if (btnC) btnC.textContent = `⛏️ CONTINUE — $${price}`;
+      continueEl.style.display = 'none';
     }
   }
 

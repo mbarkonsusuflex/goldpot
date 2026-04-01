@@ -2596,26 +2596,8 @@
     // Comeback bonus — check if player was away 48+ hours
     checkComebackBonus();
 
-    // Email verification reminder
-    if (player && !player.emailVerified) {
-      const banner = document.createElement('div');
-      banner.className = 'email-verify-banner';
-      banner.innerHTML = '📧 <b>Verify your email</b> to secure your account. Check your inbox for a verification link. <button class="evb-close">&times;</button>';
-      document.body.appendChild(banner);
-      banner.querySelector('.evb-close').addEventListener('click', () => banner.remove());
-      // Poll for verification — auto-dismiss when verified
-      const emailPoll = setInterval(async () => {
-        const fresh = await api('state');
-        if (fresh && fresh.player && fresh.player.emailVerified) {
-          clearInterval(emailPoll);
-          player.emailVerified = true;
-          banner.remove();
-          showBonus('✅ Email verified!');
-        }
-      }, 5000);
-      // Stop polling after 10 minutes
-      setTimeout(() => clearInterval(emailPoll), 600000);
-    }
+    // Email verification — disabled for now (re-enable when SendGrid is configured)
+    // if (player && !player.emailVerified) { ... }
 
     // Handle Stripe return — verify payment then play bonus game
     if (pendingStripeReturn) {

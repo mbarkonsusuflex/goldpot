@@ -28,6 +28,11 @@ const BASE = process.env.TEST_URL || 'http://localhost:3099';
 const url = new URL(BASE);
 const HOST = url.hostname;
 const PORT = parseInt(url.port) || 80;
+const RUN_ID = crypto.randomBytes(4).toString('hex'); // unique per run to avoid email conflicts
+// Random IP prefix to avoid per-IP registration limits across runs
+const IP_A = 10 + parseInt(RUN_ID.slice(0, 2), 16) % 200;
+const IP_B = parseInt(RUN_ID.slice(2, 4), 16) % 256;
+function testIp(suffix) { return `${IP_A}.${IP_B}.${suffix}`; }
 
 // ── Results Tracker ─────────────────────────────────────────────────────────
 const results = [];
@@ -80,7 +85,7 @@ function csrfHeaders(csrf, token, ip) {
   const h = {
     'Cookie': `_csrf=${csrf}`,
     'X-CSRF-Token': csrf,
-    'X-Forwarded-For': ip || '10.50.0.1',
+    'X-Forwarded-For': ip || testIp('50.1'),
   };
   if (token) h['Authorization'] = `Bearer ${token}`;
   return h;
@@ -89,7 +94,9 @@ function csrfHeaders(csrf, token, ip) {
 async function registerUser(name, email, ip) {
   const csrf = await getCsrf(ip);
   if (!csrf) return null;
-  const res = await request('POST', '/api/register', { name, email }, csrfHeaders(csrf, null, ip));
+  // Add run ID to email to avoid conflicts with previous runs
+  const uniqueEmail = email.replace('@', `_${RUN_ID}@`);
+  const res = await request('POST', '/api/register', { name, email: uniqueEmail, dateOfBirth: '1990-06-15' }, csrfHeaders(csrf, null, ip));
   if (res.status === 200 && res.body.token) {
     return { token: res.body.token, id: res.body.player.id, csrf, referralCode: res.body.player.referralCode };
   }
@@ -103,35 +110,35 @@ async function testTOCTOU() {
   console.log('\n─── T01: TOCTOU Race Conditions ─────────────────────────────');
 
   // 01a: Free entry — same pot, 30 concurrent requests
-  const u1 = await registerUser('Race01', 'race01@test.local', '10.1.1.1');
+  const u1 = await registerUser('Race01', 'race01@test.local', testIp('1.1'));
   if (!u1) { record('T01a', 'Free entry race', false, 'SKIP - registration failed'); return; }
   const freeProms = [];
   for (let i = 0; i < 30; i++) {
-    freeProms.push(request('POST', '/api/free-entry', { playerId: u1.id, potId: 'gold' }, csrfHeaders(u1.csrf, u1.token, '10.1.1.1')));
+    freeProms.push(request('POST', '/api/free-entry', { playerId: u1.id, potId: 'gold' }, csrfHeaders(u1.csrf, u1.token, testIp('1.1'))));
   }
   const freeRes = await Promise.all(freeProms);
   const freeOK = freeRes.filter(r => r.status === 200 && r.body.success).length;
   record('T01a', 'Free entry race (same pot, 30x)', freeOK <= 1, `${freeOK} succeeded (expected ≤1)`);
 
   // 01b: Free entry — different pots, 15 concurrent (limit is 5/day)
-  const u2 = await registerUser('Race02', 'race02@test.local', '10.1.1.2');
+  const u2 = await registerUser('Race02', 'race02@test.local', testIp('1.2'));
   if (!u2) { record('T01b', 'Free entry daily limit race', false, 'SKIP'); return; }
   const dayProms = [];
   const pots = ['mini', 'gold', 'mega'];
   for (let i = 0; i < 15; i++) {
-    dayProms.push(request('POST', '/api/free-entry', { playerId: u2.id, potId: pots[i % 3] }, csrfHeaders(u2.csrf, u2.token, '10.1.1.2')));
+    dayProms.push(request('POST', '/api/free-entry', { playerId: u2.id, potId: pots[i % 3] }, csrfHeaders(u2.csrf, u2.token, testIp('1.2'))));
   }
   const dayRes = await Promise.all(dayProms);
   const dayOK = dayRes.filter(r => r.status === 200 && r.body.success).length;
   record('T01b', 'Free entry daily limit race (15x)', dayOK <= 5, `${dayOK} succeeded (expected ≤5)`);
 
   // 01c: Daily bonus — 20 concurrent
-  const u3 = await registerUser('Race03', 'race03@test.local', '10.1.1.3');
+  const u3 = await registerUser('Race03', 'race03@test.local', testIp('1.3'));
   if (!u3) { record('T01c', 'Daily bonus race', false, 'SKIP'); return; }
-  await request('POST', '/api/free-entry', { playerId: u3.id, potId: 'gold' }, csrfHeaders(u3.csrf, u3.token, '10.1.1.3'));
+  await request('POST', '/api/free-entry', { playerId: u3.id, potId: 'gold' }, csrfHeaders(u3.csrf, u3.token, testIp('1.3')));
   const bonusProms = [];
   for (let i = 0; i < 20; i++) {
-    bonusProms.push(request('POST', '/api/daily-bonus', { playerId: u3.id }, csrfHeaders(u3.csrf, u3.token, '10.1.1.3')));
+    bonusProms.push(request('POST', '/api/daily-bonus', { playerId: u3.id }, csrfHeaders(u3.csrf, u3.token, testIp('1.3'))));
   }
   const bonusRes = await Promise.all(bonusProms);
   const bonusOK = bonusRes.filter(r => r.status === 200 && !r.body.error).length;
@@ -140,7 +147,7 @@ async function testTOCTOU() {
   // 01d: Spin wheel — 20 concurrent
   const spinProms = [];
   for (let i = 0; i < 20; i++) {
-    spinProms.push(request('POST', '/api/spin-wheel', { playerId: u3.id }, csrfHeaders(u3.csrf, u3.token, '10.1.1.3')));
+    spinProms.push(request('POST', '/api/spin-wheel', { playerId: u3.id }, csrfHeaders(u3.csrf, u3.token, testIp('1.3'))));
   }
   const spinRes = await Promise.all(spinProms);
   const spinOK = spinRes.filter(r => r.status === 200 && r.body.entries !== undefined).length;
@@ -149,7 +156,7 @@ async function testTOCTOU() {
   // 01e: Share reward — all platforms concurrent
   const platforms = ['twitter', 'facebook', 'sms', 'whatsapp', 'email', 'reddit', 'telegram', 'copy'];
   const shareProms = platforms.map(p =>
-    request('POST', '/api/share-reward', { playerId: u3.id, platform: p }, csrfHeaders(u3.csrf, u3.token, '10.1.1.3'))
+    request('POST', '/api/share-reward', { playerId: u3.id, platform: p }, csrfHeaders(u3.csrf, u3.token, testIp('1.3')))
   );
   const shareRes = await Promise.all(shareProms);
   const shareOK = shareRes.filter(r => r.status === 200 && r.body.success).length;
@@ -162,9 +169,9 @@ async function testTOCTOU() {
 async function testSelfExclusionBypass() {
   console.log('\n─── T02: Self-Exclusion Bypass ──────────────────────────────');
 
-  const u = await registerUser('Excluded01', 'excluded01@test.local', '10.2.0.1');
+  const u = await registerUser('Excluded01', 'excluded01@test.local', testIp('2.1'));
   if (!u) { record('T02', 'Self-exclusion', false, 'SKIP'); return; }
-  const h = csrfHeaders(u.csrf, u.token, '10.2.0.1');
+  const h = csrfHeaders(u.csrf, u.token, testIp('2.1'));
 
   // Self-exclude for 30 days
   const excl = await request('POST', '/api/self-exclude', { playerId: u.id, days: 30 }, h);
@@ -202,12 +209,12 @@ async function testSelfExclusionBypass() {
 async function testJWT() {
   console.log('\n─── T03: JWT Manipulation ───────────────────────────────────');
 
-  const u = await registerUser('JWT01', 'jwt01@test.local', '10.3.0.1');
+  const u = await registerUser('JWT01', 'jwt01@test.local', testIp('3.1'));
   if (!u) { record('T03', 'JWT', false, 'SKIP'); return; }
-  const h = (tok) => csrfHeaders(u.csrf, tok, '10.3.0.1');
+  const h = (tok) => csrfHeaders(u.csrf, tok, testIp('3.1'));
 
   // 03a: No token
-  const r1 = await request('GET', `/api/player/${u.id}`, null, { 'X-Forwarded-For': '10.3.0.1' });
+  const r1 = await request('GET', `/api/player/${u.id}`, null, { 'X-Forwarded-For': testIp('3.1') });
   record('T03a', 'No auth token', r1.status === 401, `Status: ${r1.status}`);
 
   // 03b: Malformed token
@@ -249,31 +256,31 @@ async function testJWT() {
 async function testCSRFBypass() {
   console.log('\n─── T04: CSRF Bypass Attempts ───────────────────────────────');
 
-  const u = await registerUser('CSRF01', 'csrf01@test.local', '10.4.0.1');
+  const u = await registerUser('CSRF01', 'csrf01@test.local', testIp('4.1'));
   if (!u) { record('T04', 'CSRF', false, 'SKIP'); return; }
 
   // 04a: No CSRF headers at all
   const r1 = await request('POST', '/api/free-entry', { playerId: u.id, potId: 'gold' }, {
-    'Authorization': `Bearer ${u.token}`, 'X-Forwarded-For': '10.4.0.1'
+    'Authorization': `Bearer ${u.token}`, 'X-Forwarded-For': testIp('4.1')
   });
   record('T04a', 'POST without CSRF', r1.status === 403, `Status: ${r1.status}`);
 
   // 04b: CSRF cookie but no header
   const r2 = await request('POST', '/api/free-entry', { playerId: u.id, potId: 'gold' }, {
-    'Authorization': `Bearer ${u.token}`, 'Cookie': `_csrf=${u.csrf}`, 'X-Forwarded-For': '10.4.0.1'
+    'Authorization': `Bearer ${u.token}`, 'Cookie': `_csrf=${u.csrf}`, 'X-Forwarded-For': testIp('4.1')
   });
   record('T04b', 'CSRF cookie only (no header)', r2.status === 403, `Status: ${r2.status}`);
 
   // 04c: CSRF header but no cookie
   const r3 = await request('POST', '/api/free-entry', { playerId: u.id, potId: 'gold' }, {
-    'Authorization': `Bearer ${u.token}`, 'X-CSRF-Token': u.csrf, 'X-Forwarded-For': '10.4.0.1'
+    'Authorization': `Bearer ${u.token}`, 'X-CSRF-Token': u.csrf, 'X-Forwarded-For': testIp('4.1')
   });
   record('T04c', 'CSRF header only (no cookie)', r3.status === 403, `Status: ${r3.status}`);
 
   // 04d: Mismatched CSRF cookie vs header
   const r4 = await request('POST', '/api/free-entry', { playerId: u.id, potId: 'gold' }, {
     'Authorization': `Bearer ${u.token}`, 'Cookie': `_csrf=${u.csrf}`,
-    'X-CSRF-Token': 'aaaabbbbccccddddeeeeffffaaaabbbbccccddddeeeefffff', 'X-Forwarded-For': '10.4.0.1'
+    'X-CSRF-Token': 'aaaabbbbccccddddeeeeffffaaaabbbbccccddddeeeefffff', 'X-Forwarded-For': testIp('4.1')
   });
   record('T04d', 'Mismatched CSRF tokens', r4.status === 403, `Status: ${r4.status}`);
 
@@ -281,7 +288,7 @@ async function testCSRFBypass() {
   const fake = crypto.randomBytes(24).toString('hex');
   const r5 = await request('POST', '/api/free-entry', { playerId: u.id, potId: 'gold' }, {
     'Authorization': `Bearer ${u.token}`, 'Cookie': `_csrf=${fake}`,
-    'X-CSRF-Token': fake, 'X-Forwarded-For': '10.4.0.1'
+    'X-CSRF-Token': fake, 'X-Forwarded-For': testIp('4.1')
   });
   // This WILL pass since the server only checks cookie === header, not that it issued the token
   record('T04e', 'Self-forged CSRF token', r5.status !== 403, `Status: ${r5.status} (server accepts matching self-forged tokens — by design)`);
@@ -293,65 +300,65 @@ async function testCSRFBypass() {
 async function testInjection() {
   console.log('\n─── T05: Input Injection ────────────────────────────────────');
 
-  const ip = '10.5.0.1';
+  const ip = testIp('5.1');
   const csrf = await getCsrf(ip);
   const h = csrfHeaders(csrf, null, ip);
 
   // 05a: XSS in name field
   const xssName = '<script>alert(1)</script>';
-  const r1 = await request('POST', '/api/register', { name: xssName, email: 'xss@test.local' }, h);
+  const r1 = await request('POST', '/api/register', { name: xssName, email: `xss_${RUN_ID}@test.local`, dateOfBirth: '1990-06-15' }, h);
   const nameClean = r1.body?.player?.name || '';
   const hasScript = nameClean.includes('<script>') || nameClean.includes('<');
   record('T05a', 'XSS in player name', !hasScript, `Stored as: "${nameClean}"`);
 
   // 05b: SQL injection in name
-  const csrf2 = await getCsrf('10.5.0.2');
+  const csrf2 = await getCsrf(testIp('5.2'));
   const sqlName = "'; DROP TABLE players; --";
-  const r2 = await request('POST', '/api/register', { name: sqlName, email: 'sqli@test.local' }, csrfHeaders(csrf2, null, '10.5.0.2'));
+  const r2 = await request('POST', '/api/register', { name: sqlName, email: `sqli_${RUN_ID}@test.local`, dateOfBirth: '1990-06-15' }, csrfHeaders(csrf2, null, testIp('5.2')));
   record('T05b', 'SQL injection in name', r2.status === 200 || r2.status === 400, `Status: ${r2.status}`);
   // Verify DB still works
-  const r2b = await request('GET', '/api/state', null, { 'X-Forwarded-For': '10.5.0.2' });
+  const r2b = await request('GET', '/api/state', null, { 'X-Forwarded-For': testIp('5.2') });
   record('T05b2', 'DB intact after SQLi attempt', r2b.status === 200, `State endpoint: ${r2b.status}`);
 
   // 05c: Prototype pollution in body
-  const csrf3 = await getCsrf('10.5.0.3');
+  const csrf3 = await getCsrf(testIp('5.3'));
   const r3 = await request('POST', '/api/register', {
-    name: 'Proto', email: 'proto@test.local', '__proto__': { admin: true }, 'constructor': { 'prototype': { admin: true } }
-  }, csrfHeaders(csrf3, null, '10.5.0.3'));
+    name: 'Proto', email: `proto_${RUN_ID}@test.local`, dateOfBirth: '1990-06-15', '__proto__': { admin: true }, 'constructor': { 'prototype': { admin: true } }
+  }, csrfHeaders(csrf3, null, testIp('5.3')));
   record('T05c', 'Prototype pollution via body', r3.status !== 500, `Status: ${r3.status}`);
 
   // 05d: Oversized payload (1MB of data)
-  const csrf4 = await getCsrf('10.5.0.4');
-  const bigPayload = JSON.stringify({ name: 'A'.repeat(1000000), email: 'big@test.local' });
+  const csrf4 = await getCsrf(testIp('5.4'));
+  const bigPayload = JSON.stringify({ name: 'A'.repeat(1000000), email: `big_${RUN_ID}@test.local` });
   const r4 = await request('POST', '/api/register', bigPayload, {
-    ...csrfHeaders(csrf4, null, '10.5.0.4'), 'Content-Type': 'application/json'
+    ...csrfHeaders(csrf4, null, testIp('5.4')), 'Content-Type': 'application/json'
   });
   record('T05d', 'Oversized payload (1MB)', r4.status === 413 || r4.status === 400 || r4.status === 200, `Status: ${r4.status}`);
 
   // 05e: Negative quantity
-  const csrf5 = await getCsrf('10.5.0.5');
-  const u = await registerUser('NegQty', 'negqty@test.local', '10.5.0.5');
+  const csrf5 = await getCsrf(testIp('5.5'));
+  const u = await registerUser('NegQty', 'negqty@test.local', testIp('5.5'));
   if (u) {
-    const r5 = await request('POST', '/api/free-entry', { playerId: u.id, potId: 'gold', quantity: -999 }, csrfHeaders(u.csrf, u.token, '10.5.0.5'));
+    const r5 = await request('POST', '/api/free-entry', { playerId: u.id, potId: 'gold', quantity: -999 }, csrfHeaders(u.csrf, u.token, testIp('5.5')));
     record('T05e', 'Negative quantity in entry', true, `Status: ${r5.status} (free entry ignores quantity)`);
   }
 
   // 05f: Non-existent potId
   if (u) {
-    const r6 = await request('POST', '/api/free-entry', { playerId: u.id, potId: '../../../etc/passwd' }, csrfHeaders(u.csrf, u.token, '10.5.0.5'));
+    const r6 = await request('POST', '/api/free-entry', { playerId: u.id, potId: '../../../etc/passwd' }, csrfHeaders(u.csrf, u.token, testIp('5.5')));
     record('T05f', 'Path traversal in potId', r6.status === 400, `Status: ${r6.status}`);
   }
 
   // 05g: Unicode/null bytes in name
-  const csrf7 = await getCsrf('10.5.0.7');
-  const r7 = await request('POST', '/api/register', { name: 'Test\x00Evil\x00', email: 'null@test.local' }, csrfHeaders(csrf7, null, '10.5.0.7'));
+  const csrf7 = await getCsrf(testIp('5.7'));
+  const r7 = await request('POST', '/api/register', { name: 'Test\x00Evil\x00', email: `null_${RUN_ID}@test.local`, dateOfBirth: '1990-06-15' }, csrfHeaders(csrf7, null, testIp('5.7')));
   const nullName = r7.body?.player?.name || '';
   record('T05g', 'Null bytes in name', !nullName.includes('\x00'), `Stored as: "${nullName}"`);
 
   // 05h: JSON content-type but invalid JSON
-  const csrf8 = await getCsrf('10.5.0.8');
+  const csrf8 = await getCsrf(testIp('5.8'));
   const r8 = await request('POST', '/api/register', '{{invalid json!!!', {
-    ...csrfHeaders(csrf8, null, '10.5.0.8'), 'Content-Type': 'application/json'
+    ...csrfHeaders(csrf8, null, testIp('5.8')), 'Content-Type': 'application/json'
   });
   record('T05h', 'Malformed JSON body', r8.status === 400 || r8.status === 403, `Status: ${r8.status}`);
 }
@@ -362,25 +369,25 @@ async function testInjection() {
 async function testIDOR() {
   console.log('\n─── T06: IDOR Attacks ───────────────────────────────────────');
 
-  const victim = await registerUser('Victim01', 'victim@test.local', '10.6.0.1');
-  const attacker = await registerUser('Attacker01', 'attacker@test.local', '10.6.0.2');
+  const victim = await registerUser('Victim01', 'victim@test.local', testIp('6.1'));
+  const attacker = await registerUser('Attacker01', 'attacker@test.local', testIp('6.2'));
   if (!victim || !attacker) { record('T06', 'IDOR', false, 'SKIP'); return; }
 
   // Give victim a free entry first
-  await request('POST', '/api/free-entry', { playerId: victim.id, potId: 'gold' }, csrfHeaders(victim.csrf, victim.token, '10.6.0.1'));
+  await request('POST', '/api/free-entry', { playerId: victim.id, potId: 'gold' }, csrfHeaders(victim.csrf, victim.token, testIp('6.1')));
 
   // 06a: Attacker tries to claim daily bonus for victim using attacker's token
   // authRequired overwrites body.playerId with token's sub, so attacker can only affect their own account
-  const r1 = await request('POST', '/api/daily-bonus', { playerId: victim.id }, csrfHeaders(attacker.csrf, attacker.token, '10.6.0.2'));
+  const r1 = await request('POST', '/api/daily-bonus', { playerId: victim.id }, csrfHeaders(attacker.csrf, attacker.token, testIp('6.2')));
   const r1safe = r1.status >= 400 || !r1.body?.victim;
   record('T06a', 'Daily bonus with other\'s playerId', r1safe, `Status: ${r1.status} — authRequired overwrites playerId from JWT`);
 
   // 06b: Attacker reads victim's profile
-  const r2 = await request('GET', `/api/player/${victim.id}`, null, csrfHeaders(attacker.csrf, attacker.token, '10.6.0.2'));
+  const r2 = await request('GET', `/api/player/${victim.id}`, null, csrfHeaders(attacker.csrf, attacker.token, testIp('6.2')));
   record('T06b', 'Read victim profile with attacker token', r2.status === 401 || r2.status === 403, `Status: ${r2.status}`);
 
   // 06c: Attacker tries free entry for victim
-  const r3 = await request('POST', '/api/free-entry', { playerId: victim.id, potId: 'mega' }, csrfHeaders(attacker.csrf, attacker.token, '10.6.0.2'));
+  const r3 = await request('POST', '/api/free-entry', { playerId: victim.id, potId: 'mega' }, csrfHeaders(attacker.csrf, attacker.token, testIp('6.2')));
   // authRequired should block with 403 (Player ID mismatch) now that express.json runs first
   const actualPlayer = r3.body?.player?.id;
   const idorBlocked = r3.status >= 400 || (actualPlayer && actualPlayer !== victim.id);
@@ -388,12 +395,12 @@ async function testIDOR() {
 
   // 06d: Attacker tries to gift entries from victim's account
   // authRequired overwrites playerId → gift goes FROM attacker (not victim)
-  const r4 = await request('POST', '/api/gift-entries', { playerId: victim.id, recipientId: attacker.id, quantity: 10 }, csrfHeaders(attacker.csrf, attacker.token, '10.6.0.2'));
+  const r4 = await request('POST', '/api/gift-entries', { playerId: victim.id, recipientId: attacker.id, quantity: 10 }, csrfHeaders(attacker.csrf, attacker.token, testIp('6.2')));
   const r4safe = r4.status >= 400 || r4.body.error || r4.body?.from !== victim.id;
   record('T06d', 'Gift entries from victim', r4safe, `Status: ${r4.status} — authRequired rewrites playerId`);
 
   // 06e: Read victim's referral dashboard (unauthenticated GET)
-  const r5 = await request('GET', `/api/referral-dashboard/${victim.id}`, null, { 'X-Forwarded-For': '10.6.0.99' });
+  const r5 = await request('GET', `/api/referral-dashboard/${victim.id}`, null, { 'X-Forwarded-For': testIp('6.99') });
   record('T06e', 'Referral dashboard info leak', true, `Status: ${r5.status} (public endpoint — minimal data exposure by design)`);
 }
 
@@ -403,9 +410,9 @@ async function testIDOR() {
 async function testPaymentReplay() {
   console.log('\n─── T07: Payment Exploitation ──────────────────────────────');
 
-  const u = await registerUser('Pay01', 'pay01@test.local', '10.7.0.1');
+  const u = await registerUser('Pay01', 'pay01@test.local', testIp('7.1'));
   if (!u) { record('T07', 'Payment', false, 'SKIP'); return; }
-  const h = csrfHeaders(u.csrf, u.token, '10.7.0.1');
+  const h = csrfHeaders(u.csrf, u.token, testIp('7.1'));
 
   // Set payment method first
   await request('POST', '/api/payment-method', { playerId: u.id, paymentMethodId: 'pm_test', cardLast4: '4242' }, h);
@@ -449,7 +456,7 @@ async function testPaymentReplay() {
 async function testReferralFarming() {
   console.log('\n─── T08: Referral Farming ───────────────────────────────────');
 
-  const farmer = await registerUser('Farmer01', 'farmer@test.local', '10.8.0.1');
+  const farmer = await registerUser('Farmer01', 'farmer@test.local', testIp('8.1'));
   if (!farmer) { record('T08', 'Referral', false, 'SKIP'); return; }
 
   // Get farmer's referral code from registration response
@@ -459,10 +466,10 @@ async function testReferralFarming() {
   // 08a: Same IP referrals (should be blocked after first)
   let sameIpOK = 0;
   for (let i = 0; i < 5; i++) {
-    const csrf = await getCsrf('10.8.0.1');
+    const csrf = await getCsrf(testIp('8.1'));
     const r = await request('POST', '/api/register', {
-      name: `SameIP${i}`, email: `sameip${i}@test.local`, referralCode: refCode
-    }, csrfHeaders(csrf, null, '10.8.0.1'));
+      name: `SameIP${i}`, email: `sameip${i}_${RUN_ID}@test.local`, dateOfBirth: '1990-06-15', referralCode: refCode
+    }, csrfHeaders(csrf, null, testIp('8.1')));
     if (r.status === 200) sameIpOK++;
   }
   record('T08a', 'Same-IP referral farming', sameIpOK <= 3, `${sameIpOK} registered from same IP (rate limit may restrict)`);
@@ -473,17 +480,17 @@ async function testReferralFarming() {
     const ip = `10.8.${i + 10}.1`;
     const csrf = await getCsrf(ip);
     const r = await request('POST', '/api/register', {
-      name: `VPN${i}`, email: `vpn${i}@test.local`, referralCode: refCode
+      name: `VPN${i}`, email: `vpn${i}_${RUN_ID}@test.local`, dateOfBirth: '1990-06-15', referralCode: refCode
     }, csrfHeaders(csrf, null, ip));
     if (r.status === 200) diffIpReferred++;
   }
   record('T08b', 'Multi-IP referral farming', true, `${diffIpReferred}/10 registered with different IPs (no device fingerprint check)`);
 
   // 08c: Self-referral
-  const csrf = await getCsrf('10.8.0.99');
+  const csrf = await getCsrf(testIp('8.99'));
   const selfRef = await request('POST', '/api/register', {
-    name: 'SelfRef', email: 'selfref@test.local', referralCode: refCode
-  }, csrfHeaders(csrf, null, '10.8.0.99'));
+    name: 'SelfRef', email: `selfref_${RUN_ID}@test.local`, dateOfBirth: '1990-06-15', referralCode: refCode
+  }, csrfHeaders(csrf, null, testIp('8.99')));
   // The farmer refers themselves — same IP
   record('T08c', 'Self-referral prevention', true, `Status: ${selfRef.status} (different email/name = different account)`);
 }
@@ -494,27 +501,27 @@ async function testReferralFarming() {
 async function testAdmin() {
   console.log('\n─── T09: Admin Endpoint Security ────────────────────────────');
 
-  const csrf = await getCsrf('10.9.0.1');
+  const csrf = await getCsrf(testIp('9.1'));
 
   // 09a: /api/draw without admin secret
-  const r1 = await request('POST', '/api/draw', { potId: 'gold' }, { ...csrfHeaders(csrf, null, '10.9.0.1') });
+  const r1 = await request('POST', '/api/draw', { potId: 'gold' }, { ...csrfHeaders(csrf, null, testIp('9.1')) });
   record('T09a', 'Draw without admin secret', r1.status === 401 || r1.status === 403, `Status: ${r1.status}`);
 
   // 09b: /api/draw with wrong admin secret
   const r2 = await request('POST', '/api/draw', { potId: 'gold' }, {
-    ...csrfHeaders(csrf, null, '10.9.0.1'), 'X-Admin-Secret': 'password123'
+    ...csrfHeaders(csrf, null, testIp('9.1')), 'X-Admin-Secret': 'password123'
   });
   record('T09b', 'Draw with wrong secret', r2.status === 401 || r2.status === 403, `Status: ${r2.status}`);
 
   // 09c: /api/metrics without auth
-  const r3 = await request('GET', '/api/metrics', null, { 'X-Forwarded-For': '10.9.0.1' });
+  const r3 = await request('GET', '/api/metrics', null, { 'X-Forwarded-For': testIp('9.1') });
   record('T09c', 'Metrics without auth', r3.status === 403, `Status: ${r3.status}`);
 
   // 09d: /api/metrics brute-force (10 rapid attempts)
   const bruteProms = [];
   for (let i = 0; i < 10; i++) {
     bruteProms.push(request('GET', '/api/metrics', null, {
-      'X-Forwarded-For': '10.9.0.1', 'X-Admin-Secret': `attempt${i}`
+      'X-Forwarded-For': testIp('9.1'), 'X-Admin-Secret': `attempt${i}`
     }));
   }
   const bruteRes = await Promise.all(bruteProms);
@@ -532,7 +539,7 @@ async function testDoS() {
   const start = Date.now();
   const stateProms = [];
   for (let i = 0; i < 100; i++) {
-    stateProms.push(request('GET', '/api/state', null, { 'X-Forwarded-For': `10.10.${i}.1` }));
+    stateProms.push(request('GET', '/api/state', null, { 'X-Forwarded-For': testIp(`${100+i}.1`) }));
   }
   const stateRes = await Promise.all(stateProms);
   const stateOK = stateRes.filter(r => r.status === 200).length;
@@ -540,14 +547,14 @@ async function testDoS() {
   record('T10a', '100x concurrent /api/state', stateOK > 50, `${stateOK}/100 OK in ${elapsed}ms`);
 
   // 10b: Track-event flood (20 req/10s limit)
-  const csrf = await getCsrf('10.10.0.1');
-  const u = await registerUser('DoS01', 'dos01@test.local', '10.10.0.10');
+  const csrf = await getCsrf(testIp('10.1'));
+  const u = await registerUser('DoS01', 'dos01@test.local', testIp('10.10'));
   if (u) {
     const trackProms = [];
     for (let i = 0; i < 50; i++) {
       trackProms.push(request('POST', '/api/track-event', {
         event: 'test_event', data: { i }, playerId: u.id
-      }, csrfHeaders(csrf, null, '10.10.0.10')));
+      }, csrfHeaders(csrf, null, testIp('10.10'))));
     }
     const trackRes = await Promise.all(trackProms);
     const trackLimited = trackRes.filter(r => r.status === 429).length;
@@ -558,9 +565,9 @@ async function testDoS() {
   const regStart = Date.now();
   const regProms = [];
   for (let i = 0; i < 50; i++) {
-    const ip = `10.10.${100 + i}.1`;
+    const ip = testIp(`${200+i}.1`);
     const c = await getCsrf(ip);
-    regProms.push(request('POST', '/api/register', { name: `DoSReg${i}`, email: `dosreg${i}@test.local` }, csrfHeaders(c, null, ip)));
+    regProms.push(request('POST', '/api/register', { name: `DoSReg${i}`, email: `dosreg${i}_${RUN_ID}@test.local`, dateOfBirth: '1990-06-15' }, csrfHeaders(c, null, ip)));
   }
   const regRes = await Promise.all(regProms);
   const regOK = regRes.filter(r => r.status === 200).length;
@@ -604,10 +611,10 @@ async function testHeaderInjection() {
   console.log('\n─── T12: Header / HTTP Probes ───────────────────────────────');
 
   // 12a: X-Forwarded-For spoofing with multiple IPs
-  const csrf = await getCsrf('10.12.0.1');
+  const csrf = await getCsrf(testIp('12.1'));
   const r1 = await request('POST', '/api/register', {
-    name: 'Spoof', email: 'spoof@test.local'
-  }, { ...csrfHeaders(csrf, null, '10.12.0.1'), 'X-Forwarded-For': '8.8.8.8, 1.2.3.4, 10.12.0.1' });
+    name: 'Spoof', email: `spoof_${RUN_ID}@test.local`, dateOfBirth: '1990-06-15'
+  }, { ...csrfHeaders(csrf, null, testIp('12.1')), 'X-Forwarded-For': '8.8.8.8, 1.2.3.4, 10.12.0.1' });
   record('T12a', 'X-Forwarded-For with multiple IPs', r1.status === 200 || r1.status === 429, `Status: ${r1.status}`);
 
   // 12b: Host header injection
@@ -625,9 +632,9 @@ async function testHeaderInjection() {
 async function testDepositLimitBypass() {
   console.log('\n─── T13: Deposit Limit Bypass ───────────────────────────────');
 
-  const u = await registerUser('DepLim01', 'deplim@test.local', '10.13.0.1');
+  const u = await registerUser('DepLim01', 'deplim@test.local', testIp('13.1'));
   if (!u) { record('T13', 'Deposit limit', false, 'SKIP'); return; }
-  const h = csrfHeaders(u.csrf, u.token, '10.13.0.1');
+  const h = csrfHeaders(u.csrf, u.token, testIp('13.1'));
 
   // Set a deposit limit (actual route is /api/deposit-limit)
   const r1 = await request('POST', '/api/deposit-limit', { playerId: u.id, limit: 5 }, h);
